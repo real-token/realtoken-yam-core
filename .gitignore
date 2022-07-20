@@ -1,0 +1,35 @@
+#node
+node_modules
+.env
+
+#MACOSX
+.DS_Store
+
+#Hardhat files
+cache
+artifacts
+coverage
+coverage.json
+typechain
+
+#Testing purpose
+tmp
+
+#Merkle output
+propertyTree*.json
+
+.openzeppelin/*
+# Kovan Proxy
+!.openzeppelin/kovan.json
+# Rinkeby Proxy
+!.openzeppelin/rinkeby.json
+# Goerli Proxy
+!.openzeppelin/goerli.json
+# Ethereum Proxy
+!.openzeppelin/mainnet.json
+# Polygon Proxy
+!.openzeppelin/unknown-137.json
+# BSC Proxy
+!.openzeppelin/unknown-56.json
+# Gnosis Chain Proxy
+!.openzeppelin/unknown-100.json
