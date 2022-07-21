@@ -13,6 +13,7 @@ contract SwapCatUpgradeable is AccessControlUpgradeable, UUPSUpgradeable {
   mapping(uint24 => address) internal offertoken;
   mapping(uint24 => address) internal buyertoken;
   mapping(uint24 => address) internal seller;
+  mapping(address => bool) internal whitelistedTokens;
   uint24 internal offercount;
 
   // admin address, receives donations and can move stuck funds, nothing else
@@ -36,6 +37,18 @@ contract SwapCatUpgradeable is AccessControlUpgradeable, UUPSUpgradeable {
     onlyRole(UPGRADER_ROLE)
   {}
 
+  function toggleWhitelist(address token_)
+    external
+    onlyRole(DEFAULT_ADMIN_ROLE)
+  {
+    whitelistedTokens[token_] = !whitelistedTokens[token_];
+  }
+
+  modifier isWhitelisted(address token_) {
+    require(whitelistedTokens[token_], "Token is not whitelisted");
+    _;
+  }
+
   // set up your erc20 offer. give token addresses and the price in baseunits
   // to change a price simply call this again with the changed price + offerid
   function makeoffer(
@@ -43,7 +56,12 @@ contract SwapCatUpgradeable is AccessControlUpgradeable, UUPSUpgradeable {
     address _buyertoken,
     uint256 _price,
     uint24 _offerid
-  ) public returns (uint24) {
+  )
+    public
+    isWhitelisted(_offertoken)
+    isWhitelisted(_buyertoken)
+    returns (uint24)
+  {
     // if no offerid is given a new offer is made, if offerid is given only the offers price is changed if owner matches
     if (_offerid == 0) {
       _offerid = offercount;
@@ -207,4 +225,11 @@ contract SwapCatUpgradeable is AccessControlUpgradeable, UUPSUpgradeable {
   receive() external payable {}
 
   fallback() external payable {}
+
+  /**
+   * @dev This empty reserved space is put in place to allow future versions to add new
+   * variables without shifting down storage in the inheritance chain.
+   * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+   */
+  uint256[43] private __gap;
 }
