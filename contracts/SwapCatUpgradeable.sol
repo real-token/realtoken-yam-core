@@ -19,13 +19,13 @@ contract SwapCatUpgradeable is AccessControlUpgradeable, UUPSUpgradeable {
   // admin address, receives donations and can move stuck funds, nothing else
   address internal admin;
 
-  function initialize(address admin_) external initializer {
+  function initialize(address admin_, address adminFee_) external initializer {
     __AccessControl_init();
     __UUPSUpgradeable_init();
 
     _grantRole(DEFAULT_ADMIN_ROLE, admin_);
     _grantRole(UPGRADER_ROLE, admin_);
-    admin = admin_;
+    admin = adminFee_;
   }
 
   /// @notice The admin (with upgrader role) uses this function to update the contract
