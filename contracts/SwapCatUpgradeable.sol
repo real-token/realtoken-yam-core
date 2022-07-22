@@ -2,10 +2,15 @@
 pragma solidity ^0.8.0;
 
 import { IERC20 } from "./interfaces/IERC20.sol";
+import { ISwapCatUpgradeable } from "./interfaces/ISwapCatUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
-contract SwapCatUpgradeable is AccessControlUpgradeable, UUPSUpgradeable {
+contract SwapCatUpgradeable is
+  AccessControlUpgradeable,
+  UUPSUpgradeable,
+  ISwapCatUpgradeable
+{
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
   // lets make mappings to store offer data
@@ -17,7 +22,7 @@ contract SwapCatUpgradeable is AccessControlUpgradeable, UUPSUpgradeable {
   uint24 internal offercount;
 
   // admin address, receives donations and can move stuck funds, nothing else
-  address internal admin;
+  address public admin;
 
   function initialize(address admin_, address adminFee_) external initializer {
     __AccessControl_init();
@@ -37,8 +42,10 @@ contract SwapCatUpgradeable is AccessControlUpgradeable, UUPSUpgradeable {
     onlyRole(UPGRADER_ROLE)
   {}
 
+  /// @inheritdoc	ISwapCatUpgradeable
   function toggleWhitelist(address token_)
     external
+    override
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
     whitelistedTokens[token_] = !whitelistedTokens[token_];
@@ -49,15 +56,15 @@ contract SwapCatUpgradeable is AccessControlUpgradeable, UUPSUpgradeable {
     _;
   }
 
-  // set up your erc20 offer. give token addresses and the price in baseunits
-  // to change a price simply call this again with the changed price + offerid
-  function makeoffer(
+  /// @inheritdoc	ISwapCatUpgradeable
+  function createOffer(
     address _offertoken,
     address _buyertoken,
     uint256 _price,
     uint24 _offerid
   )
     public
+    override
     isWhitelisted(_offertoken)
     isWhitelisted(_buyertoken)
     returns (uint24)
@@ -81,29 +88,26 @@ contract SwapCatUpgradeable is AccessControlUpgradeable, UUPSUpgradeable {
     return _offerid;
   }
 
-  function deleteoffer(uint24 _offerid) public returns (string memory) {
-    require(
-      seller[_offerid] == msg.sender,
-      "only original seller can change offer!"
-    );
+  function deleteOffer(uint24 _offerid) public override {
+    require(seller[_offerid] == msg.sender, "Not the seller of this offer!");
     delete seller[_offerid];
     delete offertoken[_offerid];
     delete buyertoken[_offerid];
     delete price[_offerid];
-    return "offer deleted";
   }
 
   // return the total number of offers to loop through all offers
   // its the web frontends job to keep track of offers
 
-  function getoffercount() public view returns (uint24) {
+  function getOfferCount() public view override returns (uint24) {
     return offercount - 1;
   }
 
-  // get a tokens name, symbol and decimals
-  function tokeninfo(address _tokenaddr)
+  /// @inheritdoc	ISwapCatUpgradeable
+  function tokenInfo(address _tokenaddr)
     public
     view
+    override
     returns (
       uint256,
       string memory,
@@ -114,10 +118,11 @@ contract SwapCatUpgradeable is AccessControlUpgradeable, UUPSUpgradeable {
     return (tokeni.decimals(), tokeni.symbol(), tokeni.name());
   }
 
-  // get a single offers details
-  function showoffer(uint24 _offerid)
+  /// @inheritdoc	ISwapCatUpgradeable
+  function showOffer(uint24 _offerid)
     public
     view
+    override
     returns (
       address,
       address,
@@ -148,10 +153,11 @@ contract SwapCatUpgradeable is AccessControlUpgradeable, UUPSUpgradeable {
     );
   }
 
-  // return the price in buyertokens for the specified amount of offertokens
-  function pricepreview(uint24 _offerid, uint256 _amount)
+  /// @inheritdoc	ISwapCatUpgradeable
+  function pricePreview(uint24 _offerid, uint256 _amount)
     public
     view
+    override
     returns (uint256)
   {
     IERC20 offertokeni = IERC20(offertoken[_offerid]);
@@ -159,14 +165,12 @@ contract SwapCatUpgradeable is AccessControlUpgradeable, UUPSUpgradeable {
       (_amount * price[_offerid]) / (uint256(10)**offertokeni.decimals()) + 1;
   }
 
-  // the actual exchange function
-  // the buyer must bring the price correctly to ensure no frontrunning / changed offer
-  // if the offer is changed in meantime, it will not execute
+  /// @inheritdoc	ISwapCatUpgradeable
   function buy(
     uint24 _offerid,
     uint256 _offertokenamount,
     uint256 _price
-  ) public returns (string memory) {
+  ) public override {
     IERC20 offertokeninterface = IERC20(offertoken[_offerid]);
     IERC20 buyertokeninterface = IERC20(buyertoken[_offerid]);
 
@@ -205,26 +209,13 @@ contract SwapCatUpgradeable is AccessControlUpgradeable, UUPSUpgradeable {
       oldsellerbalance > offertokeninterface.balanceOf(seller[_offerid]),
       "seller error"
     );
-    return "tokens exchanged. ENJOY!";
   }
 
   // in case someone wrongfully directly sends erc20 to this contract address, the admin can move them out
-  function losttokens(address token) public {
+  function saveLostTokens(address token) public {
     IERC20 tokeninterface = IERC20(token);
     tokeninterface.transfer(admin, tokeninterface.balanceOf(address(this)));
   }
-
-  // TODO: finish receive, fallback and withdraw functions, add storage gap
-
-  // straight ether payments to this contract are considered donations. thank you!
-  function withdraw() external {
-    require(msg.sender == admin, "only admin can withdraw");
-    payable(admin).transfer(address(this).balance);
-  }
-
-  receive() external payable {}
-
-  fallback() external payable {}
 
   /**
    * @dev This empty reserved space is put in place to allow future versions to add new
