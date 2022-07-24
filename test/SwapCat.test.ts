@@ -1,61 +1,126 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { BigNumber } from "ethers";
 import { keccak256, toUtf8Bytes } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
 import { SwapCatUpgradeable } from "../typechain/SwapCatUpgradeable";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("SwapCatUpgradeable", function () {
-  let SwapCatUpgradeable: SwapCatUpgradeable;
-  let admin: SignerWithAddress;
-  let adminFee: SignerWithAddress;
-  let user1: SignerWithAddress;
-  let user2: SignerWithAddress;
+  async function makeSuite() {
+    const [admin, adminFee, user1, user2]: SignerWithAddress[] =
+      await ethers.getSigners();
 
-  let swapCatUpgradeable: SwapCatUpgradeable;
+    const RealTokenTest = await ethers.getContractFactory("RealTokenTest");
+    const realTokenTest = await RealTokenTest.deploy();
+    const USDCTokenTest = await ethers.getContractFactory("USDCTokenTest");
+    const usdcTokenTest = await USDCTokenTest.deploy();
 
-  beforeEach(async () => {
     const SwapCatUpgradeableFactory = await ethers.getContractFactory(
       "SwapCatUpgradeable"
     );
 
-    [admin, adminFee, user1, user2] = await ethers.getSigners();
-
-    swapCatUpgradeable = (await upgrades.deployProxy(
+    const swapCatUpgradeable = (await upgrades.deployProxy(
       SwapCatUpgradeableFactory,
       [admin.address, adminFee.address]
     )) as SwapCatUpgradeable;
+
+    return {
+      realTokenTest,
+      usdcTokenTest,
+      swapCatUpgradeable,
+      admin,
+      adminFee,
+      user1,
+      user2,
+    };
+  }
+
+  describe("Deployment", function () {
+    it("Should initialize with the right admin", async function () {
+      const { swapCatUpgradeable, admin } = await loadFixture(makeSuite);
+
+      expect(
+        await swapCatUpgradeable.hasRole(
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+          admin.address
+        )
+      ).to.equal(true);
+    });
+
+    it("Should initialize with the right upgrader", async function () {
+      const { swapCatUpgradeable, admin } = await loadFixture(makeSuite);
+
+      expect(
+        await swapCatUpgradeable.hasRole(
+          keccak256(toUtf8Bytes("UPGRADER_ROLE")),
+          admin.address
+        )
+      ).to.equal(true);
+    });
+
+    it("Should initialize with the right adminFee", async function () {
+      const { swapCatUpgradeable, adminFee } = await loadFixture(makeSuite);
+
+      expect(await swapCatUpgradeable.admin()).to.equal(adminFee.address);
+    });
   });
 
-  it("Initialize: right admin address", async function () {
-    expect(
-      await swapCatUpgradeable.hasRole(
-        "0x0000000000000000000000000000000000000000000000000000000000000000",
-        admin.address
-      )
-    ).to.equal(true);
+  describe("Upgradeability", function () {
+    it("Should be able to upgrade by the upgrader admin", async function () {});
 
-    expect(
-      await swapCatUpgradeable.hasRole(
-        keccak256(toUtf8Bytes("UPGRADER_ROLE")),
-        admin.address
-      )
-    ).to.equal(true);
+    it("Should not be able to upgrade by others", async function () {});
   });
 
-  it("Upgradeability: should be able to upgrade the contract", async function () {});
+  describe("Whitelist", function () {
+    it("Whitelist/unWhitelist: should work with admin", async function () {
+      const { realTokenTest, swapCatUpgradeable } = await loadFixture(
+        makeSuite
+      );
+      await swapCatUpgradeable.toggleWhitelist(realTokenTest.address);
 
-  it("Whitelist/UnWhitelist tokens: should work", async function () {});
+      expect(
+        await swapCatUpgradeable.isWhitelisted(realTokenTest.address)
+      ).to.equal(true);
 
-  it("makeOffer: should work", async function () {});
+      await swapCatUpgradeable.toggleWhitelist(realTokenTest.address);
 
-  it("modifyOffer/deleteOffer by owner: should work", async function () {});
+      expect(
+        await swapCatUpgradeable.isWhitelisted(realTokenTest.address)
+      ).to.equal(false);
+    });
 
-  it("modifyOffer/deleteOffer not by owner: should not work", async function () {});
+    it("Whitelist/unWhitelist: should not work with other address", async function () {
+      const { swapCatUpgradeable, user1 } = await loadFixture(makeSuite);
 
-  it("buy: should work", async function () {});
+      await expect(
+        swapCatUpgradeable.connect(user1).toggleWhitelist(user1.address)
+      ).to.revertedWith(
+        `AccessControl: account ${user1.address.toLowerCase()} is missing role ${await swapCatUpgradeable.DEFAULT_ADMIN_ROLE()}`
+      );
+    });
+  });
 
-  it("Transfer/Withdraw ethers: should work", async function () {});
+  describe("Offer", function () {
+    it("Make Offer: should work", async function () {
+      const { swapCatUpgradeable, admin, adminFee } = await loadFixture(
+        makeSuite
+      );
+    });
+
+    it("Modify Offer/Delete Offer by owner: should work", async function () {});
+
+    it("Modify Offer/Delete Offer not by owner: should not work", async function () {});
+
+    it("Buy: should work", async function () {});
+  });
+
+  describe("Save", function () {
+    it("Transfer/Withdraw ethers: should work", async function () {});
+
+    it("should allow withdrawing by the owner", async function () {});
+
+    it("should not allow withdrawing by other address", async function () {});
+  });
 
   // TODO add more tests
 });
