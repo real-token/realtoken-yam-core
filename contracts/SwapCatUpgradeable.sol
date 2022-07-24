@@ -18,7 +18,7 @@ contract SwapCatUpgradeable is
   mapping(uint24 => address) internal offertoken;
   mapping(uint24 => address) internal buyertoken;
   mapping(uint24 => address) internal seller;
-  mapping(address => bool) internal whitelistedTokens;
+  mapping(address => bool) public whitelistedTokens;
   uint24 internal offercount;
 
   // admin address, receives donations and can move stuck funds, nothing else
@@ -51,9 +51,13 @@ contract SwapCatUpgradeable is
     whitelistedTokens[token_] = !whitelistedTokens[token_];
   }
 
-  modifier isWhitelisted(address token_) {
+  modifier onlyWhitelistedToken(address token_) {
     require(whitelistedTokens[token_], "Token is not whitelisted");
     _;
+  }
+
+  function isWhitelisted(address token_) external view override returns (bool) {
+    return whitelistedTokens[token_];
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
@@ -65,8 +69,8 @@ contract SwapCatUpgradeable is
   )
     public
     override
-    isWhitelisted(_offertoken)
-    isWhitelisted(_buyertoken)
+    onlyWhitelistedToken(_offertoken)
+    onlyWhitelistedToken(_buyertoken)
     returns (uint24)
   {
     // if no offerid is given a new offer is made, if offerid is given only the offers price is changed if owner matches

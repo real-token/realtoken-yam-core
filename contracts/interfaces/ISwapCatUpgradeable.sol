@@ -135,4 +135,11 @@ interface ISwapCatUpgradeable {
    * @param token The token address
    **/
   function toggleWhitelist(address token) external;
+
+  /**
+   * @notice Returns whether the token is whitelisted
+   * @param token The token address
+   * @return true if the token is whitelisted, false otherwise
+   **/
+  function isWhitelisted(address token) external view returns (bool);
 }
