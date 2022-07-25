@@ -21,7 +21,7 @@ contract USDCTokenTest is ERC20, Ownable {
   ) internal override {
     super._beforeTokenTransfer(from, to, amount);
 
-    console.log("Transferring from %s to %s %s tokens", from, to, amount);
+    console.log("Transferring from %s to %s %s USDC tokens", from, to, amount);
   }
 
   function msgSender() external view returns (address caller) {

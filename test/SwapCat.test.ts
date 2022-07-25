@@ -225,13 +225,130 @@ describe("SwapCatUpgradeable", function () {
         .withArgs(1);
     });
 
-    it("Buy: should work", async function () {});
+    it("Buy: should work", async function () {
+      const { realTokenTest, usdcTokenTest, swapCatUpgradeable, user1, user2 } =
+        await loadFixture(makeSuite);
+
+      await expect(swapCatUpgradeable.toggleWhitelist(realTokenTest.address))
+        .to.emit(swapCatUpgradeable, "TokenWhitelisted")
+        .withArgs(realTokenTest.address);
+
+      await expect(swapCatUpgradeable.toggleWhitelist(usdcTokenTest.address))
+        .to.emit(swapCatUpgradeable, "TokenWhitelisted")
+        .withArgs(usdcTokenTest.address);
+
+      await realTokenTest.transfer(user1.address, 200);
+      expect(await realTokenTest.balanceOf(user1.address)).to.equal(200);
+      await usdcTokenTest.transfer(user2.address, 200);
+      expect(await usdcTokenTest.balanceOf(user2.address)).to.equal(200);
+
+      await expect(
+        realTokenTest.connect(user1).approve(swapCatUpgradeable.address, 20)
+      )
+        .to.emit(realTokenTest, "Approval")
+        .withArgs(user1.address, swapCatUpgradeable.address, 20);
+      expect(
+        await realTokenTest.allowance(user1.address, swapCatUpgradeable.address)
+      ).to.equal(20);
+
+      await expect(
+        usdcTokenTest.connect(user2).approve(swapCatUpgradeable.address, 200)
+      )
+        .to.emit(usdcTokenTest, "Approval")
+        .withArgs(user2.address, swapCatUpgradeable.address, 200);
+      expect(
+        await usdcTokenTest.allowance(user2.address, swapCatUpgradeable.address)
+      ).to.equal(200);
+
+      await expect(
+        swapCatUpgradeable
+          .connect(user1)
+          .createOffer(realTokenTest.address, usdcTokenTest.address, 10, 0)
+      )
+        .to.emit(swapCatUpgradeable, "OfferCreated")
+        .withArgs(realTokenTest.address, usdcTokenTest.address, 10, 0);
+
+      // Test tokenInfo function
+      expect(
+        (await swapCatUpgradeable.tokenInfo(realTokenTest.address))[0]
+      ).to.equal(await realTokenTest.decimals());
+      expect(
+        (await swapCatUpgradeable.tokenInfo(realTokenTest.address)).slice(1)
+      ).to.deep.equal([
+        await realTokenTest.symbol(),
+        await realTokenTest.name(),
+      ]);
+
+      // Test showOffer function
+      expect((await swapCatUpgradeable.showOffer(0)).slice(0, 3)).to.deep.equal(
+        [realTokenTest.address, usdcTokenTest.address, user1.address]
+      );
+      expect((await swapCatUpgradeable.showOffer(0))[3]).to.equal(10);
+
+      // Test showOffer balanceallow
+      // When allowance is inferior than user1 balance
+      expect((await swapCatUpgradeable.showOffer(0))[4]).to.equal(
+        await realTokenTest.allowance(user1.address, swapCatUpgradeable.address)
+      );
+
+      // When allowance is inferior than user1 balance
+      await expect(
+        realTokenTest.connect(user1).approve(swapCatUpgradeable.address, 300)
+      )
+        .to.emit(realTokenTest, "Approval")
+        .withArgs(user1.address, swapCatUpgradeable.address, 300);
+      expect((await swapCatUpgradeable.showOffer(0))[4]).to.equal(
+        await realTokenTest.balanceOf(user1.address)
+      );
+
+      // TODO check price calculation
+      // Test pricePreview function
+      // expect(await swapCatUpgradeable.pricePreview(0, 15)).to.equal(150);
+    });
   });
 
   describe("Save", function () {
-    it("Transfer/Withdraw ethers: should work", async function () {});
+    it("Should not be able to transfer ethers to the contract", async function () {
+      const { admin, adminFee, swapCatUpgradeable } = await loadFixture(
+        makeSuite
+      );
+      const provider = await ethers.getDefaultProvider();
+      await expect(
+        admin.sendTransaction({
+          to: swapCatUpgradeable.address,
+          value: ethers.utils.parseEther("1.0"), // Sends exactly 1.0 ether
+        })
+      ).to.be.revertedWith(
+        "function selector was not recognized and there's no fallback nor receive function"
+      );
+      await admin.sendTransaction({
+        to: adminFee.address,
+        value: ethers.utils.parseEther("10"), // Sends exactly 1.0 ether
+      });
+      console.log(await provider.getBalance(adminFee.address));
+      // TODO check if the admin can transfer ethers to another address
+      // expect(await provider.getBalance(adminFee.address)).to.equal(1);
+      // expect(await provider.getBalance(swapCatUpgradeable.address)).to.equal(0);
+    });
 
-    it("should allow withdrawing by the owner", async function () {});
+    it("should allow withdrawing by the owner", async function () {
+      const { realTokenTest, swapCatUpgradeable, adminFee } = await loadFixture(
+        makeSuite
+      );
+
+      await expect(swapCatUpgradeable.toggleWhitelist(realTokenTest.address))
+        .to.emit(swapCatUpgradeable, "TokenWhitelisted")
+        .withArgs(realTokenTest.address);
+
+      await realTokenTest.transfer(swapCatUpgradeable.address, 200);
+      expect(
+        await realTokenTest.balanceOf(swapCatUpgradeable.address)
+      ).to.equal(200);
+      await swapCatUpgradeable
+        .connect(adminFee)
+        .saveLostTokens(realTokenTest.address);
+      expect(await realTokenTest.balanceOf(adminFee.address)).to.equal(200);
+    });
 
     it("should not allow withdrawing by other address", async function () {});
   });
