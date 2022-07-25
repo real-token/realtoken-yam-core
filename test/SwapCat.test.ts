@@ -89,11 +89,26 @@ describe("SwapCatUpgradeable", function () {
       ).to.equal(false);
     });
 
+    it("Whitelist/unWhitelist should emit the right event", async function () {
+      const { realTokenTest, swapCatUpgradeable } = await loadFixture(
+        makeSuite
+      );
+      await expect(swapCatUpgradeable.toggleWhitelist(realTokenTest.address))
+        .to.emit(swapCatUpgradeable, "TokenWhitelisted")
+        .withArgs(realTokenTest.address);
+
+      await expect(swapCatUpgradeable.toggleWhitelist(realTokenTest.address))
+        .to.emit(swapCatUpgradeable, "TokenUnWhitelisted")
+        .withArgs(realTokenTest.address);
+    });
+
     it("Whitelist/unWhitelist: should not work with other address", async function () {
-      const { swapCatUpgradeable, user1 } = await loadFixture(makeSuite);
+      const { realTokenTest, swapCatUpgradeable, user1 } = await loadFixture(
+        makeSuite
+      );
 
       await expect(
-        swapCatUpgradeable.connect(user1).toggleWhitelist(user1.address)
+        swapCatUpgradeable.connect(user1).toggleWhitelist(realTokenTest.address)
       ).to.revertedWith(
         `AccessControl: account ${user1.address.toLowerCase()} is missing role ${await swapCatUpgradeable.DEFAULT_ADMIN_ROLE()}`
       );
@@ -101,15 +116,114 @@ describe("SwapCatUpgradeable", function () {
   });
 
   describe("Offer", function () {
-    it("Make Offer: should work", async function () {
-      const { swapCatUpgradeable, admin, adminFee } = await loadFixture(
-        makeSuite
-      );
+    it("Create Offer: should create an offer when both tokens are whitelisted", async function () {
+      const { realTokenTest, usdcTokenTest, swapCatUpgradeable } =
+        await loadFixture(makeSuite);
+
+      await expect(swapCatUpgradeable.toggleWhitelist(realTokenTest.address))
+        .to.emit(swapCatUpgradeable, "TokenWhitelisted")
+        .withArgs(realTokenTest.address);
+
+      await expect(swapCatUpgradeable.toggleWhitelist(usdcTokenTest.address))
+        .to.emit(swapCatUpgradeable, "TokenWhitelisted")
+        .withArgs(usdcTokenTest.address);
+
+      await expect(
+        swapCatUpgradeable.createOffer(
+          realTokenTest.address,
+          usdcTokenTest.address,
+          10,
+          0
+        )
+      )
+        .to.emit(swapCatUpgradeable, "OfferCreated")
+        .withArgs(realTokenTest.address, usdcTokenTest.address, 10, 0);
+
+      await expect(
+        swapCatUpgradeable.createOffer(
+          realTokenTest.address,
+          usdcTokenTest.address,
+          15,
+          0
+        )
+      )
+        .to.emit(swapCatUpgradeable, "OfferCreated")
+        .withArgs(realTokenTest.address, usdcTokenTest.address, 15, 1);
     });
 
-    it("Modify Offer/Delete Offer by owner: should work", async function () {});
+    it("Create Offer: should revert when the tokens are not whitelisted", async function () {
+      const { realTokenTest, usdcTokenTest, swapCatUpgradeable } =
+        await loadFixture(makeSuite);
 
-    it("Modify Offer/Delete Offer not by owner: should not work", async function () {});
+      await expect(
+        swapCatUpgradeable.createOffer(
+          realTokenTest.address,
+          usdcTokenTest.address,
+          10,
+          0
+        )
+      ).to.be.revertedWith("Token is not whitelisted");
+    });
+
+    it("Modify Offer/Delete Offer by owner: should work", async function () {
+      const { realTokenTest, usdcTokenTest, swapCatUpgradeable, user1, user2 } =
+        await loadFixture(makeSuite);
+
+      // Whitelist the RealTokenTest
+      await expect(swapCatUpgradeable.toggleWhitelist(realTokenTest.address))
+        .to.emit(swapCatUpgradeable, "TokenWhitelisted")
+        .withArgs(realTokenTest.address);
+      // Whitelist the USDCTokenTest
+      await expect(swapCatUpgradeable.toggleWhitelist(usdcTokenTest.address))
+        .to.emit(swapCatUpgradeable, "TokenWhitelisted")
+        .withArgs(usdcTokenTest.address);
+
+      // User 1 creates the first offer, offerId = 0 (only for testing)
+      await expect(
+        swapCatUpgradeable
+          .connect(user1)
+          .createOffer(realTokenTest.address, usdcTokenTest.address, 10, 0)
+      )
+        .to.emit(swapCatUpgradeable, "OfferCreated")
+        .withArgs(realTokenTest.address, usdcTokenTest.address, 10, 0);
+
+      // User 1 creates the second offer, offerId = 1
+      await expect(
+        swapCatUpgradeable
+          .connect(user1)
+          .createOffer(realTokenTest.address, usdcTokenTest.address, 20, 0)
+      )
+        .to.emit(swapCatUpgradeable, "OfferCreated")
+        .withArgs(realTokenTest.address, usdcTokenTest.address, 20, 1);
+
+      // User 1 Modifies the price of the second offer, offerId = 1
+      await expect(
+        swapCatUpgradeable
+          .connect(user1)
+          .createOffer(realTokenTest.address, usdcTokenTest.address, 30, 1)
+      )
+        .to.emit(swapCatUpgradeable, "OfferCreated")
+        .withArgs(realTokenTest.address, usdcTokenTest.address, 30, 1);
+
+      expect(await swapCatUpgradeable.getOfferCount()).to.equal(1);
+
+      // Revert when user 2 modifies the price of the second offer, offerId = 1
+      await expect(
+        swapCatUpgradeable
+          .connect(user2)
+          .createOffer(realTokenTest.address, usdcTokenTest.address, 20, 1)
+      ).to.revertedWith("only the seller can change offer");
+
+      // Revert when user 2 deletes the price of the second offer, offerId = 1
+      await expect(
+        swapCatUpgradeable.connect(user2).deleteOffer(1)
+      ).to.revertedWith("only the seller can delete offer");
+
+      // Emit the "OfferDeleted" event when user 1 deletes the price of the second offer, offerId = 1
+      await expect(swapCatUpgradeable.connect(user1).deleteOffer(1))
+        .to.emit(swapCatUpgradeable, "OfferDeleted")
+        .withArgs(1);
+    });
 
     it("Buy: should work", async function () {});
   });

@@ -85,7 +85,7 @@ contract SwapCatUpgradeable is
     } else {
       require(
         seller[_offerId] == msg.sender,
-        "only original seller can change offer!"
+        "only the seller can change offer"
       );
     }
     price[_offerId] = _price;
@@ -97,7 +97,7 @@ contract SwapCatUpgradeable is
   }
 
   function deleteOffer(uint256 _offerId) public override {
-    require(seller[_offerId] == msg.sender, "Not the seller of this offer!");
+    require(seller[_offerId] == msg.sender, "only the seller can delete offer");
     delete seller[_offerId];
     delete offerToken[_offerId];
     delete buyerToken[_offerId];
