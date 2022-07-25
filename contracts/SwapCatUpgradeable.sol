@@ -14,12 +14,12 @@ contract SwapCatUpgradeable is
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
   // lets make mappings to store offer data
-  mapping(uint24 => uint256) internal price;
-  mapping(uint24 => address) internal offertoken;
-  mapping(uint24 => address) internal buyertoken;
-  mapping(uint24 => address) internal seller;
+  mapping(uint256 => uint256) internal price;
+  mapping(uint256 => address) internal offerToken;
+  mapping(uint256 => address) internal buyerToken;
+  mapping(uint256 => address) internal seller;
   mapping(address => bool) public whitelistedTokens;
-  uint24 internal offercount;
+  uint256 internal offerCount;
 
   // admin address, receives donations and can move stuck funds, nothing else
   address public admin;
@@ -49,6 +49,8 @@ contract SwapCatUpgradeable is
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
     whitelistedTokens[token_] = !whitelistedTokens[token_];
+    if (whitelistedTokens[token_]) emit TokenWhitelisted(token_);
+    else emit TokenUnWhitelisted(token_);
   }
 
   modifier onlyWhitelistedToken(address token_) {
@@ -62,49 +64,52 @@ contract SwapCatUpgradeable is
 
   /// @inheritdoc	ISwapCatUpgradeable
   function createOffer(
-    address _offertoken,
-    address _buyertoken,
+    address _offerToken,
+    address _buyerToken,
     uint256 _price,
-    uint24 _offerid
+    uint256 _offerId
   )
     public
     override
-    onlyWhitelistedToken(_offertoken)
-    onlyWhitelistedToken(_buyertoken)
-    returns (uint24)
+    onlyWhitelistedToken(_offerToken)
+    onlyWhitelistedToken(_buyerToken)
+    returns (uint256)
   {
-    // if no offerid is given a new offer is made, if offerid is given only the offers price is changed if owner matches
-    if (_offerid == 0) {
-      _offerid = offercount;
-      offercount++;
-      seller[_offerid] = msg.sender;
-      offertoken[_offerid] = _offertoken;
-      buyertoken[_offerid] = _buyertoken;
+    // if no offerId is given a new offer is made, if offerId is given only the offers price is changed if owner matches
+    if (_offerId == 0) {
+      _offerId = offerCount;
+      offerCount++;
+      seller[_offerId] = msg.sender;
+      offerToken[_offerId] = _offerToken;
+      buyerToken[_offerId] = _buyerToken;
     } else {
       require(
-        seller[_offerid] == msg.sender,
+        seller[_offerId] == msg.sender,
         "only original seller can change offer!"
       );
     }
-    price[_offerid] = _price;
+    price[_offerId] = _price;
 
-    // returns the offerid
-    return _offerid;
+    emit OfferCreated(_offerToken, _buyerToken, _price, _offerId);
+
+    // returns the offerId
+    return _offerId;
   }
 
-  function deleteOffer(uint24 _offerid) public override {
-    require(seller[_offerid] == msg.sender, "Not the seller of this offer!");
-    delete seller[_offerid];
-    delete offertoken[_offerid];
-    delete buyertoken[_offerid];
-    delete price[_offerid];
+  function deleteOffer(uint256 _offerId) public override {
+    require(seller[_offerId] == msg.sender, "Not the seller of this offer!");
+    delete seller[_offerId];
+    delete offerToken[_offerId];
+    delete buyerToken[_offerId];
+    delete price[_offerId];
+    emit OfferDeleted(_offerId);
   }
 
   // return the total number of offers to loop through all offers
   // its the web frontends job to keep track of offers
 
-  function getOfferCount() public view override returns (uint24) {
-    return offercount - 1;
+  function getOfferCount() public view override returns (uint256) {
+    return offerCount - 1;
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
@@ -123,7 +128,7 @@ contract SwapCatUpgradeable is
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
-  function showOffer(uint24 _offerid)
+  function showOffer(uint256 _offerId)
     public
     view
     override
@@ -135,12 +140,12 @@ contract SwapCatUpgradeable is
       uint256
     )
   {
-    IERC20 offertokeni = IERC20(offertoken[_offerid]);
+    IERC20 offerTokeni = IERC20(offerToken[_offerId]);
 
-    // get offertokens balance and allowance, whichever is lower is the available amount
-    uint256 availablebalance = offertokeni.balanceOf(seller[_offerid]);
-    uint256 availableallow = offertokeni.allowance(
-      seller[_offerid],
+    // get offerTokens balance and allowance, whichever is lower is the available amount
+    uint256 availablebalance = offerTokeni.balanceOf(seller[_offerId]);
+    uint256 availableallow = offerTokeni.allowance(
+      seller[_offerId],
       address(this)
     );
 
@@ -149,76 +154,78 @@ contract SwapCatUpgradeable is
     }
 
     return (
-      offertoken[_offerid],
-      buyertoken[_offerid],
-      seller[_offerid],
-      price[_offerid],
+      offerToken[_offerId],
+      buyerToken[_offerId],
+      seller[_offerId],
+      price[_offerId],
       availablebalance
     );
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
-  function pricePreview(uint24 _offerid, uint256 _amount)
+  function pricePreview(uint256 _offerId, uint256 _amount)
     public
     view
     override
     returns (uint256)
   {
-    IERC20 offertokeni = IERC20(offertoken[_offerid]);
+    IERC20 offerTokeni = IERC20(offerToken[_offerId]);
     return
-      (_amount * price[_offerid]) / (uint256(10)**offertokeni.decimals()) + 1;
+      (_amount * price[_offerId]) / (uint256(10)**offerTokeni.decimals()) + 1;
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
   function buy(
-    uint24 _offerid,
-    uint256 _offertokenamount,
+    uint256 _offerId,
+    uint256 _offerTokenAmount,
     uint256 _price
   ) public override {
-    IERC20 offertokeninterface = IERC20(offertoken[_offerid]);
-    IERC20 buyertokeninterface = IERC20(buyertoken[_offerid]);
+    IERC20 offerTokenInterface = IERC20(offerToken[_offerId]);
+    IERC20 buyerTokenInterface = IERC20(buyerToken[_offerId]);
 
     // given price is being checked with recorded data from mappings
-    require(price[_offerid] == _price, "offer price wrong");
+    require(price[_offerId] == _price, "offer price wrong");
 
     // calculate the price of the order
-    uint256 buyertokenAmount = (_offertokenamount * _price) /
-      (uint256(10)**offertokeninterface.decimals()) +
+    uint256 buyerTokenAmount = (_offerTokenAmount * _price) /
+      (uint256(10)**offerTokenInterface.decimals()) +
       1;
 
     // some old erc20 tokens give no return value so we must work around by getting their balance before and after the exchange
-    uint256 oldbuyerbalance = buyertokeninterface.balanceOf(msg.sender);
-    uint256 oldsellerbalance = offertokeninterface.balanceOf(seller[_offerid]);
+    uint256 oldbuyerbalance = buyerTokenInterface.balanceOf(msg.sender);
+    uint256 oldsellerbalance = offerTokenInterface.balanceOf(seller[_offerId]);
 
     // finally do the exchange
-    buyertokeninterface.transferFrom(
+    buyerTokenInterface.transferFrom(
       msg.sender,
-      seller[_offerid],
-      buyertokenAmount
+      seller[_offerId],
+      buyerTokenAmount
     );
-    offertokeninterface.transferFrom(
-      seller[_offerid],
+    offerTokenInterface.transferFrom(
+      seller[_offerId],
       msg.sender,
-      _offertokenamount
+      _offerTokenAmount
     );
 
     // now check if the balances changed on both accounts.
     // we do not check for exact amounts since some tokens behave differently with fees, burnings, etc
     // we assume if both balances are higher than before all is good
     require(
-      oldbuyerbalance > buyertokeninterface.balanceOf(msg.sender),
+      oldbuyerbalance > buyerTokenInterface.balanceOf(msg.sender),
       "buyer error"
     );
     require(
-      oldsellerbalance > offertokeninterface.balanceOf(seller[_offerid]),
+      oldsellerbalance > offerTokenInterface.balanceOf(seller[_offerId]),
       "seller error"
     );
+
+    emit OfferAccepted(_offerId, msg.sender, _offerTokenAmount);
   }
 
   // in case someone wrongfully directly sends erc20 to this contract address, the admin can move them out
   function saveLostTokens(address token) public {
-    IERC20 tokeninterface = IERC20(token);
-    tokeninterface.transfer(admin, tokeninterface.balanceOf(address(this)));
+    IERC20 tokenInterface = IERC20(token);
+    tokenInterface.transfer(admin, tokenInterface.balanceOf(address(this)));
   }
 
   /**

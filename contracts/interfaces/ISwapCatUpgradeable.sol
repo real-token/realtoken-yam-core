@@ -4,43 +4,47 @@ pragma solidity ^0.8.0;
 interface ISwapCatUpgradeable {
   /**
    * @dev Emitted after an offer is created
-   * @param offerId the Id of the offer
    * @param offerToken the token you want to sell
    * @param buyerToken the token you want to buy
    * @param price the price in baseunits of the token you want to sell
+   * @param offerId the Id of the offer
    **/
   event OfferCreated(
-    uint24 offerId,
-    address offerToken,
-    address buyerToken,
-    uint256 price
+    address indexed offerToken,
+    address indexed buyerToken,
+    uint256 price,
+    uint256 indexed offerId
   );
 
   /**
    * @dev Emitted after an offer is deleted
    * @param offerId the Id of the offer to be deleted
    **/
-  event OfferDeleted(uint24 offerId);
+  event OfferDeleted(uint256 indexed offerId);
 
   /**
    * @dev Emitted after an offer is accepted
-   * @param offerId a parameter just like in doxygen (must be followed by parameter name)
-   * @param buyer the address of the bidder
-   * @param amount the amount of tokens that the bidder bought
+   * @param offerId The Id of the offer that was accepted
+   * @param buyer the address of the buyer
+   * @param amount the amount of tokens that the buyer bought
    **/
-  event OfferAccepted(uint24 offerId, address buyer, uint256 amount);
+  event OfferAccepted(
+    uint256 indexed offerId,
+    address indexed buyer,
+    uint256 indexed amount
+  );
 
   /**
    * @dev Emitted after a token is whitelisted
    * @param token the token address that is whitelisted
    **/
-  event TokenWhitelisted(address token);
+  event TokenWhitelisted(address indexed token);
 
   /**
    * @dev Emitted after a token is unwhitelisted
    * @param token the token address that is unwhitelisted
    **/
-  event TokenUnWhitelisted(address token);
+  event TokenUnWhitelisted(address indexed token);
 
   /**
    * @notice Creates a new offer or updates an existing offer (call this again with the changed price + offerId)
@@ -54,14 +58,14 @@ interface ISwapCatUpgradeable {
     address offerToken,
     address buyerToken,
     uint256 price,
-    uint24 offerId
-  ) external returns (uint24);
+    uint256 offerId
+  ) external returns (uint256);
 
   /**
    * @notice Deletes an existing offer, only the seller of the offer can do this
    * @param offerId The Id of the offer to be deleted
    **/
-  function deleteOffer(uint24 offerId) external;
+  function deleteOffer(uint256 offerId) external;
 
   /**
    * @notice Accepts an existing offer
@@ -72,7 +76,7 @@ interface ISwapCatUpgradeable {
    * @param price The price in base units of the offer tokens
    **/
   function buy(
-    uint24 offerId,
+    uint256 offerId,
     uint256 amount,
     uint256 price
   ) external;
@@ -81,7 +85,7 @@ interface ISwapCatUpgradeable {
    * @notice Returns the offer count
    * @return offerCount The offer count
    **/
-  function getOfferCount() external view returns (uint24);
+  function getOfferCount() external view returns (uint256);
 
   /**
    * @notice Returns the token information: decimals, symbole, name
@@ -108,7 +112,7 @@ interface ISwapCatUpgradeable {
    * @return The price
    * @return The available balance
    **/
-  function showOffer(uint24 offerId)
+  function showOffer(uint256 offerId)
     external
     view
     returns (
@@ -125,7 +129,7 @@ interface ISwapCatUpgradeable {
    * @param amount The amount of offer tokens
    * @return The total amount to pay
    **/
-  function pricePreview(uint24 offerId, uint256 amount)
+  function pricePreview(uint256 offerId, uint256 amount)
     external
     view
     returns (uint256);
