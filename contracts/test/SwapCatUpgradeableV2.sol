@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { IERC20 } from "./interfaces/IERC20.sol";
-import { ISwapCatUpgradeable } from "./interfaces/ISwapCatUpgradeable.sol";
+import { IERC20 } from "../interfaces/IERC20.sol";
+import { ISwapCatUpgradeable } from "../interfaces/ISwapCatUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
-contract SwapCatUpgradeable is
+contract SwapCatUpgradeableV2 is
   AccessControlUpgradeable,
   UUPSUpgradeable,
   ISwapCatUpgradeable
@@ -71,6 +71,7 @@ contract SwapCatUpgradeable is
   )
     public
     override
+    onlyWhitelistedUser
     onlyWhitelistedToken(_offerToken)
     onlyWhitelistedToken(_buyerToken)
     returns (uint256)
@@ -96,7 +97,7 @@ contract SwapCatUpgradeable is
     return _offerId;
   }
 
-  function deleteOffer(uint256 _offerId) public override {
+  function deleteOffer(uint256 _offerId) public override onlyWhitelistedUser {
     require(seller[_offerId] == msg.sender, "only the seller can delete offer");
     delete seller[_offerId];
     delete offerToken[_offerId];
@@ -179,7 +180,7 @@ contract SwapCatUpgradeable is
     uint256 _offerId,
     uint256 _offerTokenAmount,
     uint256 _price
-  ) public override {
+  ) public override onlyWhitelistedUser {
     IERC20 offerTokenInterface = IERC20(offerToken[_offerId]);
     IERC20 buyerTokenInterface = IERC20(buyerToken[_offerId]);
 
@@ -223,7 +224,7 @@ contract SwapCatUpgradeable is
   }
 
   // in case someone wrongfully directly sends erc20 to this contract address, the admin can move them out
-  function saveLostTokens(address token) public onlyRole(DEFAULT_ADMIN_ROLE) {
+  function saveLostTokens(address token) external onlyRole(DEFAULT_ADMIN_ROLE) {
     IERC20 tokenInterface = IERC20(token);
     tokenInterface.transfer(admin, tokenInterface.balanceOf(address(this)));
   }
@@ -234,4 +235,22 @@ contract SwapCatUpgradeable is
    * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
    */
   uint256[43] private __gap;
+
+  mapping(address => bool) public whitelistedUsers;
+
+  function toggleWhitelistUser(address user_)
+    external
+    onlyRole(DEFAULT_ADMIN_ROLE)
+  {
+    whitelistedUsers[user_] = !whitelistedUsers[user_];
+  }
+
+  function isWhitelistedUser(address user_) external view returns (bool) {
+    return whitelistedUsers[user_];
+  }
+
+  modifier onlyWhitelistedUser() {
+    require(whitelistedUsers[msg.sender], "user not whitelisted");
+    _;
+  }
 }

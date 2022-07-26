@@ -3,6 +3,7 @@ import { expect } from "chai";
 import { keccak256, toUtf8Bytes } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
 import { SwapCatUpgradeable } from "../typechain/SwapCatUpgradeable";
+import { SwapCatUpgradeableV2 } from "../typechain/SwapCatUpgradeableV2";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("SwapCatUpgradeable", function () {
@@ -35,7 +36,7 @@ describe("SwapCatUpgradeable", function () {
     };
   }
 
-  describe("Deployment", function () {
+  describe("1. Deployment", function () {
     it("Should initialize with the right admin", async function () {
       const { swapCatUpgradeable, admin } = await loadFixture(makeSuite);
 
@@ -65,13 +66,7 @@ describe("SwapCatUpgradeable", function () {
     });
   });
 
-  describe("Upgradeability", function () {
-    it("Should be able to upgrade by the upgrader admin", async function () {});
-
-    it("Should not be able to upgrade by others", async function () {});
-  });
-
-  describe("Whitelist", function () {
+  describe("2. Whitelist/unWhitelist", function () {
     it("Whitelist/unWhitelist: should work with admin", async function () {
       const { realTokenTest, swapCatUpgradeable } = await loadFixture(
         makeSuite
@@ -115,7 +110,7 @@ describe("SwapCatUpgradeable", function () {
     });
   });
 
-  describe("Offer", function () {
+  describe("3. Create/Modify/Delete Offer", function () {
     it("Create Offer: should create an offer when both tokens are whitelisted", async function () {
       const { realTokenTest, usdcTokenTest, swapCatUpgradeable } =
         await loadFixture(makeSuite);
@@ -307,7 +302,7 @@ describe("SwapCatUpgradeable", function () {
     });
   });
 
-  describe("Save", function () {
+  describe("4. Save lost tokens", function () {
     it("Should not be able to transfer ethers to the contract", async function () {
       const { admin, adminFee, swapCatUpgradeable } = await loadFixture(
         makeSuite
@@ -321,20 +316,20 @@ describe("SwapCatUpgradeable", function () {
       ).to.be.revertedWith(
         "function selector was not recognized and there's no fallback nor receive function"
       );
-      await admin.sendTransaction({
-        to: adminFee.address,
-        value: ethers.utils.parseEther("10"), // Sends exactly 1.0 ether
-      });
-      console.log(await provider.getBalance(adminFee.address));
+
       // TODO check if the admin can transfer ethers to another address
+      // await admin.sendTransaction({
+      //   to: adminFee.address,
+      //   value: ethers.utils.parseEther("10"), // Sends exactly 1.0 ether
+      // });
+      // console.log(await provider.getBalance(adminFee.address));
       // expect(await provider.getBalance(adminFee.address)).to.equal(1);
       // expect(await provider.getBalance(swapCatUpgradeable.address)).to.equal(0);
     });
 
     it("should allow withdrawing by the owner", async function () {
-      const { realTokenTest, swapCatUpgradeable, adminFee } = await loadFixture(
-        makeSuite
-      );
+      const { realTokenTest, swapCatUpgradeable, admin, adminFee, user1 } =
+        await loadFixture(makeSuite);
 
       await expect(swapCatUpgradeable.toggleWhitelist(realTokenTest.address))
         .to.emit(swapCatUpgradeable, "TokenWhitelisted")
@@ -344,13 +339,53 @@ describe("SwapCatUpgradeable", function () {
       expect(
         await realTokenTest.balanceOf(swapCatUpgradeable.address)
       ).to.equal(200);
-      await swapCatUpgradeable
-        .connect(adminFee)
-        .saveLostTokens(realTokenTest.address);
+
+      it("should not allow withdrawing by other address", async function () {
+        await expect(
+          swapCatUpgradeable
+            .connect(user1)
+            .saveLostTokens(realTokenTest.address)
+        ).to.revertedWith(
+          `AccessControl: account ${user1.address.toLowerCase()} is missing role ${await swapCatUpgradeable.DEFAULT_ADMIN_ROLE()}`
+        );
+
+        await expect(
+          swapCatUpgradeable
+            .connect(adminFee)
+            .saveLostTokens(realTokenTest.address)
+        ).to.revertedWith(
+          `AccessControl: account ${adminFee.address.toLowerCase()} is missing role ${await swapCatUpgradeable.DEFAULT_ADMIN_ROLE()}`
+        );
+      });
+
+      await expect(
+        swapCatUpgradeable.connect(admin).saveLostTokens(realTokenTest.address)
+      )
+        .to.emit(realTokenTest, "Transfer")
+        .withArgs(
+          swapCatUpgradeable.address,
+          adminFee.address,
+          await realTokenTest.balanceOf(swapCatUpgradeable.address)
+        );
       expect(await realTokenTest.balanceOf(adminFee.address)).to.equal(200);
     });
+  });
 
-    it("should not allow withdrawing by other address", async function () {});
+  describe("5. Upgradeability", function () {
+    it("Should be able to upgrade by the upgrader admin", async function () {
+      const { swapCatUpgradeable } = await loadFixture(makeSuite);
+      const SwapCatUpgradeableV2 = await ethers.getContractFactory(
+        "SwapCatUpgradeableV2"
+      );
+      const swapCatUpgradeableV2 = (await upgrades.upgradeProxy(
+        swapCatUpgradeable.address,
+        SwapCatUpgradeableV2,
+        { kind: "uups" }
+      )) as SwapCatUpgradeableV2;
+      await swapCatUpgradeableV2.deployed();
+    });
+
+    it("Should not be able to upgrade by others", async function () {});
   });
 
   // TODO add more tests
