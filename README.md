@@ -6,31 +6,29 @@
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
 [![LinkedIn][linkedin-shield]][linkedin-url]
-[![Build pass](https://github.com/real-token/realt-contract-boilerplate/actions/workflows/node.js.yml/badge.svg)](https://github.com/real-token/realt-contract-boilerplate/actions/workflows/node.js.yml)
+[![Build pass](https://github.com/real-token/realtoken-swapcat/actions/workflows/node.js.yml/badge.svg)](https://github.com/real-token/realtoken-swapcat/actions/workflows/node.js.yml)
 [![Prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 
 <!-- PROJECT LOGO -->
 <br />
 <div align="center" id="about-the-project">
-  <a href="https://github.com/real-token/realt-contract-boilerplate">
+  <a href="https://github.com/real-token/realtoken-swapcat">
     <img src="images/logo.svg" alt="Logo" width="80" height="80">
   </a>
 
-<h3 align="center">Realt Contract Boilerplate</h3>
+<h3 align="center">RealToken SwapCat DEX</h3>
 
   <p align="center">
-    Boilerplate code
+    SwapCat with whitelist token
     <br />
     <a href="https://realt.co/"><strong>Realt.co</strong></a>
     <br />
     <br />
-    <a href="https://github.com/real-token/realt-contract-boilerplate/issues">Report Bug</a>
+    <a href="https://github.com/real-token/realtoken-swapcat/issues">Report Bug</a>
     ·
-    <a href="https://github.com/real-token/realt-contract-boilerplate/issues">Request Feature</a>
+    <a href="https://github.com/real-token/realtoken-swapcat/issues">Request Feature</a>
   </p>
 </div>
-
-
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -56,13 +54,12 @@
 </details>
 
 <!-- GETTING STARTED -->
-## Getting Started
 
+## Getting Started
 
 ### Prerequisites
 
-
-* npm
+- npm
   ```sh
   npm install npm@latest -g
   ```
@@ -71,7 +68,7 @@
 
 1. Clone the repo
    ```sh
-   git clone https://github.com/real-token/realt-contract-boilerplate.git
+   git clone https://github.com/real-token/realtoken-swapcat.git
    ```
 2. Install NPM packages
    ```sh
@@ -79,11 +76,11 @@
    ```
 3. Setup a `.env` file, with the following config
 
-   >  CoinMarketCap API Key [here](https://coinmarketcap.com/api/pricing/)
+   > CoinMarketCap API Key [here](https://coinmarketcap.com/api/pricing/)
 
-   >  Infura API Key [here](https://infura.io/pricing)
+   > Infura API Key [here](https://infura.io/pricing)
 
-   >  Etherscan API Key [here](https://etherscan.io/apis)
+   > Etherscan API Key [here](https://etherscan.io/apis)
 
    > Check [.env.example](.env.example)
 
@@ -93,23 +90,18 @@
    npx hardhat --help
    ```
 
-   >  Hardhat Getting Started [here](https://hardhat.org/getting-started#running-tasks)
+   > Hardhat Getting Started [here](https://hardhat.org/getting-started#running-tasks)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
-
 <!-- USAGE EXAMPLES -->
-## Usage
-
-[![use][use-template]][use-url]
 
 > Have fun
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
 <!-- AUDIT -->
+
 ## Audit
 
 Auditing the solidity code in an important aspect of this language, we need to be confident with the code we ship to the customer to avoid malicious attacks
@@ -121,10 +113,11 @@ You can download Slither and use the following command to _audit_ the code
 ```sh
 slither .
 ```
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
 <!-- ROADMAP -->
+
 ## Roadmap
 
 - Add CI pipeline ✅
@@ -132,12 +125,12 @@ slither .
 - Support for Hardware Wallet ❌
 - Testing ✅
 
-See the [open issues](https://github.com/real-token/realt-contract-boilerplate/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/real-token/realtoken-swapcat/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
 <!-- COVERAGE -->
+
 ## Coverage
 
 <img src="images/coverage.png" alt="Coverage">
@@ -145,9 +138,11 @@ See the [open issues](https://github.com/real-token/realt-contract-boilerplate/i
 ```
 npx hardhat coverage
 ```
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- GAS FEES -->
+
 ## Gas fees
 
 <img src="images/gas.png" alt="Coverage">
@@ -155,11 +150,12 @@ npx hardhat coverage
 ```
 npx hardhat test
 ```
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- CONTRIBUTING -->
-## Contributing
 
+## Contributing
 
 If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
 Don't forget to give the project a star! Thanks again!
@@ -172,56 +168,53 @@ Don't forget to give the project a star! Thanks again!
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
-
 <!-- LICENSE -->
+
 ## License
 
 Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
-
 <!-- CONTACT -->
+
 ## Contact
 
 Support - [@RealTPlatform](https://twitter.com/RealTPlatform) - support@realt.co
 
-Project Link: [https://github.com/real-token/realt-contract-boilerplate](https://github.com/real-token/realt-contract-boilerplate)
+Project Link: [https://github.com/real-token/realtoken-swapcat](https://github.com/real-token/realtoken-swapcat)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
-
 
 <!-- BUILD WITH HARDHAT -->
 
 ## Built With Hardhat
 
-* [Eslint](https://eslint.org/)
-* [Chai](https://www.chaijs.com/guide/)
-* [Solhint](https://github.com/protofire/solhint)
-* [Prettier](https://github.com/prettier/prettier)
-* [solidity-coverage](https://github.com/sc-forks/solidity-coverage)
-* [dotenv](https://www.npmjs.com/package/dotenv)
-* [Waffle](https://getwaffle.io/)
-* [Typescript](https://www.typescriptlang.org/)
+- [Eslint](https://eslint.org/)
+- [Chai](https://www.chaijs.com/guide/)
+- [Solhint](https://github.com/protofire/solhint)
+- [Prettier](https://github.com/prettier/prettier)
+- [solidity-coverage](https://github.com/sc-forks/solidity-coverage)
+- [dotenv](https://www.npmjs.com/package/dotenv)
+- [Waffle](https://getwaffle.io/)
+- [Typescript](https://www.typescriptlang.org/)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
 <!-- MARKDOWN LINKS & IMAGES -->
-[contributors-shield]: https://img.shields.io/github/contributors/real-token/realt-contract-boilerplate.svg?style=for-the-badge
-[contributors-url]: https://github.com/real-token/realt-contract-boilerplate/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/real-token/realt-contract-boilerplate.svg?style=for-the-badge
-[forks-url]: https://github.com/real-token/realt-contract-boilerplate/network/members
-[stars-shield]: https://img.shields.io/github/stars/real-token/realt-contract-boilerplate.svg?style=for-the-badge
-[stars-url]: https://github.com/real-token/realt-contract-boilerplate/stargazers
-[issues-shield]: https://img.shields.io/github/issues/real-token/realt-contract-boilerplate.svg?style=for-the-badge
-[issues-url]: https://github.com/real-token/realt-contract-boilerplate/issues
-[license-shield]: https://img.shields.io/github/license/real-token/realt-contract-boilerplate.svg?style=for-the-badge
-[license-url]: https://github.com/real-token/realt-contract-boilerplate/blob/master/LICENSE.txt
+
+[contributors-shield]: https://img.shields.io/github/contributors/real-token/realtoken-swapcat.svg?style=for-the-badge
+[contributors-url]: https://github.com/real-token/realtoken-swapcat/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/real-token/realtoken-swapcat.svg?style=for-the-badge
+[forks-url]: https://github.com/real-token/realtoken-swapcat/network/members
+[stars-shield]: https://img.shields.io/github/stars/real-token/realtoken-swapcat.svg?style=for-the-badge
+[stars-url]: https://github.com/real-token/realtoken-swapcat/stargazers
+[issues-shield]: https://img.shields.io/github/issues/real-token/realtoken-swapcat.svg?style=for-the-badge
+[issues-url]: https://github.com/real-token/realtoken-swapcat/issues
+[license-shield]: https://img.shields.io/github/license/real-token/realtoken-swapcat.svg?style=for-the-badge
+[license-url]: https://github.com/real-token/realtoken-swapcat/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://www.linkedin.com/company/realtplatform/
 [product-screenshot]: images/screenshot.png
 [use-template]: images/delete_me.png
-[use-url]: https://github.com/real-token/realt-contract-boilerplate/generate
+[use-url]: https://github.com/real-token/realtoken-swapcat/generate
