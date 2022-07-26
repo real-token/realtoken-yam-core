@@ -1,18 +1,19 @@
 import { ethers, upgrades } from "hardhat";
-import { HardhatTokenUpgradeable } from "../typechain/HardhatTokenUpgradeable";
+import { SwapCatUpgradeable } from "../typechain/SwapCatUpgradeable";
+
 async function main() {
-  const HardhatToken = await ethers.getContractFactory(
-    "HardhatTokenUpgradeable"
+  const SwapCatUpgradeable = await ethers.getContractFactory(
+    "SwapCatUpgradeable"
   );
 
-  const hardhatTokenUpgradeable = (await upgrades.deployProxy(
-    HardhatToken,
-    []
-  )) as HardhatTokenUpgradeable;
+  const swapCatUpgradeable = (await upgrades.deployProxy(SwapCatUpgradeable, [
+    process.env.ADMIN_ADDRESS,
+    process.env.ADMIN_FEE_ADDRESS,
+  ])) as SwapCatUpgradeable;
 
-  const deployed = await hardhatTokenUpgradeable.deployed();
+  const deployed = await swapCatUpgradeable.deployed();
 
-  console.log(deployed.address);
+  console.log(`Proxy address deployed: ${deployed.address}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
