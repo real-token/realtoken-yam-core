@@ -6,7 +6,10 @@
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
 [![LinkedIn][linkedin-shield]][linkedin-url]
-[![Build pass](https://github.com/real-token/realtoken-swapcat/actions/workflows/node.js.yml/badge.svg)](https://github.com/real-token/realtoken-swapcat/actions/workflows/node.js.yml)
+
+[![Lint](https://github.com/real-token/realtoken-swapcat/actions/workflows/lint.yml/badge.svg)](https://github.com/real-token/realtoken-swapcat/actions/workflows/lint.yml)
+[![Slither](https://github.com/real-token/realtoken-swapcat/actions/workflows/slither.yml/badge.svg)](https://github.com/real-token/realtoken-swapcat/actions/workflows/slither.yml)
+[![Build pass](https://github.com/real-token/realtoken-swapcat/actions/workflows/node.js.yml/badge.svg?branch=master)](https://github.com/real-token/realtoken-swapcat/actions/workflows/node.js.yml)
 [![Prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 
 <!-- PROJECT LOGO -->
@@ -120,10 +123,11 @@ slither .
 
 ## Roadmap
 
-- Add CI pipeline ✅
-- Upgradeable proxy ✅
-- Support for Hardware Wallet ❌
+- SwapCat contracts with basic functionnalities ✅
+- Add whitelisting token functionnalities ✅
 - Testing ✅
+- Slither analysis ✅
+- Support for Hardware Wallet ❌
 
 See the [open issues](https://github.com/real-token/realtoken-swapcat/issues) for a full list of proposed features (and known issues).
 
