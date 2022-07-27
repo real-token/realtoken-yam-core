@@ -8,7 +8,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("SwapCatUpgradeable", function () {
   async function makeSuite() {
-    const [admin, adminFee, user1, user2]: SignerWithAddress[] =
+    const [admin, moderator, user1, user2]: SignerWithAddress[] =
       await ethers.getSigners();
 
     const RealTokenTest = await ethers.getContractFactory("RealTokenTest");
@@ -22,7 +22,7 @@ describe("SwapCatUpgradeable", function () {
 
     const swapCatUpgradeable = (await upgrades.deployProxy(
       SwapCatUpgradeableFactory,
-      [admin.address, adminFee.address]
+      [admin.address, moderator.address]
     )) as SwapCatUpgradeable;
 
     return {
@@ -30,7 +30,7 @@ describe("SwapCatUpgradeable", function () {
       usdcTokenTest,
       swapCatUpgradeable,
       admin,
-      adminFee,
+      moderator,
       user1,
       user2,
     };
@@ -59,10 +59,10 @@ describe("SwapCatUpgradeable", function () {
       ).to.equal(true);
     });
 
-    it("Should initialize with the right adminFee", async function () {
-      const { swapCatUpgradeable, adminFee } = await loadFixture(makeSuite);
+    it("Should initialize with the right moderator", async function () {
+      const { swapCatUpgradeable, moderator } = await loadFixture(makeSuite);
 
-      expect(await swapCatUpgradeable.admin()).to.equal(adminFee.address);
+      expect(await swapCatUpgradeable.moderator()).to.equal(moderator.address);
     });
   });
 
@@ -304,7 +304,7 @@ describe("SwapCatUpgradeable", function () {
 
   describe("4. Save lost tokens", function () {
     it("Should not be able to transfer ethers to the contract", async function () {
-      const { admin, adminFee, swapCatUpgradeable } = await loadFixture(
+      const { admin, moderator, swapCatUpgradeable } = await loadFixture(
         makeSuite
       );
       const provider = await ethers.getDefaultProvider();
@@ -319,16 +319,16 @@ describe("SwapCatUpgradeable", function () {
 
       // TODO check if the admin can transfer ethers to another address
       // await admin.sendTransaction({
-      //   to: adminFee.address,
+      //   to: moderator.address,
       //   value: ethers.utils.parseEther("10"), // Sends exactly 1.0 ether
       // });
-      // console.log(await provider.getBalance(adminFee.address));
-      // expect(await provider.getBalance(adminFee.address)).to.equal(1);
+      // console.log(await provider.getBalance(moderator.address));
+      // expect(await provider.getBalance(moderator.address)).to.equal(1);
       // expect(await provider.getBalance(swapCatUpgradeable.address)).to.equal(0);
     });
 
     it("should allow withdrawing by the owner", async function () {
-      const { realTokenTest, swapCatUpgradeable, admin, adminFee, user1 } =
+      const { realTokenTest, swapCatUpgradeable, admin, moderator, user1 } =
         await loadFixture(makeSuite);
 
       await expect(swapCatUpgradeable.toggleWhitelist(realTokenTest.address))
@@ -343,31 +343,29 @@ describe("SwapCatUpgradeable", function () {
       it("should not allow withdrawing by other address", async function () {
         await expect(
           swapCatUpgradeable
-            .connect(user1)
+            .connect(admin)
             .saveLostTokens(realTokenTest.address)
-        ).to.revertedWith(
-          `AccessControl: account ${user1.address.toLowerCase()} is missing role ${await swapCatUpgradeable.DEFAULT_ADMIN_ROLE()}`
-        );
+        ).to.revertedWith(`only moderator can move tokens`);
 
         await expect(
           swapCatUpgradeable
-            .connect(adminFee)
+            .connect(user1)
             .saveLostTokens(realTokenTest.address)
-        ).to.revertedWith(
-          `AccessControl: account ${adminFee.address.toLowerCase()} is missing role ${await swapCatUpgradeable.DEFAULT_ADMIN_ROLE()}`
-        );
+        ).to.revertedWith(`only moderator can move tokens`);
       });
 
       await expect(
-        swapCatUpgradeable.connect(admin).saveLostTokens(realTokenTest.address)
+        swapCatUpgradeable
+          .connect(moderator)
+          .saveLostTokens(realTokenTest.address)
       )
         .to.emit(realTokenTest, "Transfer")
         .withArgs(
           swapCatUpgradeable.address,
-          adminFee.address,
+          moderator.address,
           await realTokenTest.balanceOf(swapCatUpgradeable.address)
         );
-      expect(await realTokenTest.balanceOf(adminFee.address)).to.equal(200);
+      expect(await realTokenTest.balanceOf(moderator.address)).to.equal(200);
     });
   });
 

@@ -68,6 +68,12 @@ interface ISwapCatUpgradeable {
   function deleteOffer(uint256 offerId) external;
 
   /**
+   * @notice Deletes an existing offer (for example in case tokens are frozen), only the admin can do this
+   * @param offerId The Id of the offer to be deleted
+   **/
+  function deleteOfferByAdmin(uint256 offerId) external;
+
+  /**
    * @notice Accepts an existing offer
    * @notice The buyer must bring the price correctly to ensure no frontrunning / changed offer
    * @notice If the offer is changed in meantime, it will not execute
@@ -146,4 +152,27 @@ interface ISwapCatUpgradeable {
    * @return true if the token is whitelisted, false otherwise
    **/
   function isWhitelisted(address token) external view returns (bool);
+
+  // /**
+  //  * @notice Sets the moderator to a new address
+  //  * @param newModerator The address of new moderator
+  //  **/
+  // function setModerator(address newModerator) external;
+
+  // /**
+  //  * @notice Returns whether a transfer is valid
+  //  * @param token The token address
+  //  * @param from The sender address
+  //  * @param to The receiver address
+  //  * @param amount The token amount
+  //  * @param timestamp The timestamp of the transfer
+  //  * @return true if the token is whitelisted, false otherwise
+  //  **/
+  // function isTransferValid(
+  //   address token,
+  //   address from,
+  //   address to,
+  //   uint256 amount,
+  //   uint256 timestamp
+  // ) external view returns (bool);
 }

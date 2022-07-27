@@ -21,16 +21,19 @@ contract SwapCatUpgradeableV2 is
   mapping(address => bool) public whitelistedTokens;
   uint256 internal offerCount;
 
-  // admin address, receives donations and can move stuck funds, nothing else
-  address public admin;
+  // moderator address, can move stuck funds
+  address public moderator;
 
-  function initialize(address admin_, address adminFee_) external initializer {
+  /// @notice the initialize function to execute only once during the contract deployment
+  /// @param admin_ address of the default admin account: whitelist tokens, delete frozen offers, upgrade the contract
+  /// @param moderator_ address of the admin with unique responsibles
+  function initialize(address admin_, address moderator_) external initializer {
     __AccessControl_init();
     __UUPSUpgradeable_init();
 
     _grantRole(DEFAULT_ADMIN_ROLE, admin_);
     _grantRole(UPGRADER_ROLE, admin_);
-    admin = adminFee_;
+    moderator = moderator_;
   }
 
   /// @notice The admin (with upgrader role) uses this function to update the contract
@@ -42,6 +45,11 @@ contract SwapCatUpgradeableV2 is
     onlyRole(UPGRADER_ROLE)
   {}
 
+  modifier onlyWhitelistedToken(address token_) {
+    require(whitelistedTokens[token_], "Token is not whitelisted");
+    _;
+  }
+
   /// @inheritdoc	ISwapCatUpgradeable
   function toggleWhitelist(address token_)
     external
@@ -51,11 +59,6 @@ contract SwapCatUpgradeableV2 is
     whitelistedTokens[token_] = !whitelistedTokens[token_];
     if (whitelistedTokens[token_]) emit TokenWhitelisted(token_);
     else emit TokenUnWhitelisted(token_);
-  }
-
-  modifier onlyWhitelistedToken(address token_) {
-    require(whitelistedTokens[token_], "Token is not whitelisted");
-    _;
   }
 
   function isWhitelisted(address token_) external view override returns (bool) {
@@ -69,9 +72,8 @@ contract SwapCatUpgradeableV2 is
     uint256 _price,
     uint256 _offerId
   )
-    public
+    external
     override
-    onlyWhitelistedUser
     onlyWhitelistedToken(_offerToken)
     onlyWhitelistedToken(_buyerToken)
     returns (uint256)
@@ -97,8 +99,20 @@ contract SwapCatUpgradeableV2 is
     return _offerId;
   }
 
-  function deleteOffer(uint256 _offerId) public override onlyWhitelistedUser {
+  function deleteOffer(uint256 _offerId) external override {
     require(seller[_offerId] == msg.sender, "only the seller can delete offer");
+    delete seller[_offerId];
+    delete offerToken[_offerId];
+    delete buyerToken[_offerId];
+    delete price[_offerId];
+    emit OfferDeleted(_offerId);
+  }
+
+  function deleteOfferByAdmin(uint256 _offerId)
+    external
+    override
+    onlyRole(DEFAULT_ADMIN_ROLE)
+  {
     delete seller[_offerId];
     delete offerToken[_offerId];
     delete buyerToken[_offerId];
@@ -180,7 +194,7 @@ contract SwapCatUpgradeableV2 is
     uint256 _offerId,
     uint256 _offerTokenAmount,
     uint256 _price
-  ) public override onlyWhitelistedUser {
+  ) public override {
     IERC20 offerTokenInterface = IERC20(offerToken[_offerId]);
     IERC20 buyerTokenInterface = IERC20(buyerToken[_offerId]);
 
@@ -223,10 +237,11 @@ contract SwapCatUpgradeableV2 is
     emit OfferAccepted(_offerId, msg.sender, _offerTokenAmount);
   }
 
-  // in case someone wrongfully directly sends erc20 to this contract address, the admin can move them out
-  function saveLostTokens(address token) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  // in case someone wrongfully directly sends erc20 to this contract address, the moderator can move them out
+  function saveLostTokens(address token) external {
+    require(msg.sender == moderator, "only moderator can move tokens");
     IERC20 tokenInterface = IERC20(token);
-    tokenInterface.transfer(admin, tokenInterface.balanceOf(address(this)));
+    tokenInterface.transfer(moderator, tokenInterface.balanceOf(address(this)));
   }
 
   /**
