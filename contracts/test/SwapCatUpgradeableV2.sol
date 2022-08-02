@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { IERC20 } from "../interfaces/IERC20.sol";
-import { ISwapCatUpgradeable } from "../interfaces/ISwapCatUpgradeable.sol";
+import "../interfaces/ISwapCatUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
@@ -13,27 +13,36 @@ contract SwapCatUpgradeableV2 is
 {
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
-  // lets make mappings to store offer data
   mapping(uint256 => uint256) internal price;
   mapping(uint256 => address) internal offerToken;
   mapping(uint256 => address) internal buyerToken;
   mapping(uint256 => address) internal seller;
   mapping(address => bool) public whitelistedTokens;
   uint256 internal offerCount;
-
-  // moderator address, can move stuck funds
-  address public moderator;
+  address public moderator; // moderator address, can move stuck funds
+  IComplianceRegistry private _complianceRegistry;
+  address private _trustedIntermediary;
+  address[] private _trustedIntermediaries;
 
   /// @notice the initialize function to execute only once during the contract deployment
   /// @param admin_ address of the default admin account: whitelist tokens, delete frozen offers, upgrade the contract
   /// @param moderator_ address of the admin with unique responsibles
-  function initialize(address admin_, address moderator_) external initializer {
+  function initialize(
+    address admin_,
+    address moderator_,
+    IComplianceRegistry complianceRegistry_,
+    address trustedIntermediary_
+  ) external initializer {
     __AccessControl_init();
     __UUPSUpgradeable_init();
 
     _grantRole(DEFAULT_ADMIN_ROLE, admin_);
     _grantRole(UPGRADER_ROLE, admin_);
     moderator = moderator_;
+
+    _complianceRegistry = complianceRegistry_;
+    _trustedIntermediary = trustedIntermediary_;
+    _trustedIntermediaries.push(trustedIntermediary_);
   }
 
   /// @notice The admin (with upgrader role) uses this function to update the contract
@@ -45,6 +54,17 @@ contract SwapCatUpgradeableV2 is
     onlyRole(UPGRADER_ROLE)
   {}
 
+  /**
+   * @dev Only moderator can call functions marked by this modifier.
+   **/
+  modifier onlyModerator() {
+    require(msg.sender == moderator, "Caller is not moderator");
+    _;
+  }
+
+  /**
+   * @dev Only whitelisted token can be used by functions marked by this modifier.
+   **/
   modifier onlyWhitelistedToken(address token_) {
     require(whitelistedTokens[token_], "Token is not whitelisted");
     _;
@@ -61,6 +81,7 @@ contract SwapCatUpgradeableV2 is
     else emit TokenUnWhitelisted(token_);
   }
 
+  /// @inheritdoc	ISwapCatUpgradeable
   function isWhitelisted(address token_) external view override returns (bool) {
     return whitelistedTokens[token_];
   }
@@ -99,6 +120,7 @@ contract SwapCatUpgradeableV2 is
     return _offerId;
   }
 
+  /// @inheritdoc	ISwapCatUpgradeable
   function deleteOffer(uint256 _offerId) external override {
     require(seller[_offerId] == msg.sender, "only the seller can delete offer");
     delete seller[_offerId];
@@ -108,6 +130,7 @@ contract SwapCatUpgradeableV2 is
     emit OfferDeleted(_offerId);
   }
 
+  /// @inheritdoc	ISwapCatUpgradeable
   function deleteOfferByAdmin(uint256 _offerId)
     external
     override
@@ -120,9 +143,7 @@ contract SwapCatUpgradeableV2 is
     emit OfferDeleted(_offerId);
   }
 
-  // return the total number of offers to loop through all offers
-  // its the web frontends job to keep track of offers
-
+  /// @inheritdoc	ISwapCatUpgradeable
   function getOfferCount() public view override returns (uint256) {
     return offerCount - 1;
   }
@@ -237,11 +258,66 @@ contract SwapCatUpgradeableV2 is
     emit OfferAccepted(_offerId, msg.sender, _offerTokenAmount);
   }
 
-  // in case someone wrongfully directly sends erc20 to this contract address, the moderator can move them out
-  function saveLostTokens(address token) external {
-    require(msg.sender == moderator, "only moderator can move tokens");
+  /// @inheritdoc	ISwapCatUpgradeable
+  function saveLostTokens(address token) external override onlyModerator {
     IERC20 tokenInterface = IERC20(token);
     tokenInterface.transfer(moderator, tokenInterface.balanceOf(address(this)));
+  }
+
+  /// @inheritdoc	ISwapCatUpgradeable
+  function transferModerator(address newModerator)
+    external
+    override
+    onlyModerator
+  {
+    emit ModeratorTransferred(moderator, newModerator);
+    moderator = newModerator;
+  }
+
+  function _isTransferValid(
+    address _token,
+    address _from,
+    address _to
+  ) internal view returns (bool) {
+    // Rules [11, 1, 111]
+
+    // Get to see whether the token is frozen (rule 1)
+    (, uint256 isFrozen) = (IBridgeToken(_token).rule(1));
+    // Check rule index 1 (User Freeze Rule)
+    require(isFrozen == 0, "Transfer is frozen");
+
+    // Get token vesting time (rule 111)
+    (, uint256 vestingTimestamp) = (IBridgeToken(_token).rule(2));
+    // Check rule index 111 (Vesting Rule): the current timestamp must be greater than the vesting timestamp
+    require(block.timestamp > vestingTimestamp, "Vesting time is not finished");
+
+    // Get to see if the seller and the buyer are whitelisted for the token
+    // Check if the user is whitelisted for the token
+    (, uint256 tokenId) = (IBridgeToken(_token).rule(0));
+
+    (uint256 sellerId, address sellerTrustedIntermediary) = _complianceRegistry
+      .userId(_trustedIntermediaries, _from);
+    uint256 isSellerWhitelisted = _complianceRegistry.attribute(
+      sellerTrustedIntermediary,
+      sellerId,
+      tokenId
+    );
+
+    (uint256 buyerId, address buyerTrustedIntermediary) = _complianceRegistry
+      .userId(_trustedIntermediaries, _to);
+    uint256 isBuyerWhitelisted = _complianceRegistry.attribute(
+      buyerTrustedIntermediary,
+      buyerId,
+      tokenId
+    );
+
+    require(
+      isSellerWhitelisted != 0 && isBuyerWhitelisted != 0,
+      "User is not whitelisted"
+    );
+
+    // If everything is fine, return true
+    return true;
   }
 
   /**

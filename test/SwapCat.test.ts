@@ -22,7 +22,12 @@ describe("SwapCatUpgradeable", function () {
 
     const swapCatUpgradeable = (await upgrades.deployProxy(
       SwapCatUpgradeableFactory,
-      [admin.address, moderator.address]
+      [
+        admin.address,
+        moderator.address,
+        process.env.COMPLIANCE_REGISTRY,
+        process.env.TRUSTED_INTERMEDIARY,
+      ]
     )) as SwapCatUpgradeable;
 
     return {
@@ -340,19 +345,13 @@ describe("SwapCatUpgradeable", function () {
         await realTokenTest.balanceOf(swapCatUpgradeable.address)
       ).to.equal(200);
 
-      it("should not allow withdrawing by other address", async function () {
-        await expect(
-          swapCatUpgradeable
-            .connect(admin)
-            .saveLostTokens(realTokenTest.address)
-        ).to.revertedWith(`only moderator can move tokens`);
+      await expect(
+        swapCatUpgradeable.connect(admin).saveLostTokens(realTokenTest.address)
+      ).to.revertedWith(`Caller is not moderator`);
 
-        await expect(
-          swapCatUpgradeable
-            .connect(user1)
-            .saveLostTokens(realTokenTest.address)
-        ).to.revertedWith(`only moderator can move tokens`);
-      });
+      await expect(
+        swapCatUpgradeable.connect(user1).saveLostTokens(realTokenTest.address)
+      ).to.revertedWith(`Caller is not moderator`);
 
       await expect(
         swapCatUpgradeable

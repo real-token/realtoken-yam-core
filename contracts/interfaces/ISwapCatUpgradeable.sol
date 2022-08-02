@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+import "./IBridgeToken.sol";
+import "./IComplianceRegistry.sol";
 
 interface ISwapCatUpgradeable {
   /**
@@ -47,6 +49,16 @@ interface ISwapCatUpgradeable {
   event TokenUnWhitelisted(address indexed token);
 
   /**
+   * @dev Emitted after the moderator right is transferred
+   * @param oldModerator the address of old moderator
+   * @param newModerator the address of new moderator
+   **/
+  event ModeratorTransferred(
+    address indexed oldModerator,
+    address indexed newModerator
+  );
+
+  /**
    * @notice Creates a new offer or updates an existing offer (call this again with the changed price + offerId)
    * @param offerToken The address of the token to be sold
    * @param buyerToken The address of the token to be bought
@@ -91,6 +103,8 @@ interface ISwapCatUpgradeable {
    * @notice Returns the offer count
    * @return offerCount The offer count
    **/
+  // return the total number of offers to loop through all offers
+  // its the web frontends job to keep track of offers
   function getOfferCount() external view returns (uint256);
 
   /**
@@ -153,11 +167,14 @@ interface ISwapCatUpgradeable {
    **/
   function isWhitelisted(address token) external view returns (bool);
 
-  // /**
-  //  * @notice Sets the moderator to a new address
-  //  * @param newModerator The address of new moderator
-  //  **/
-  // function setModerator(address newModerator) external;
+  // in case someone wrongfully directly sends erc20 to this contract address, the moderator can move them out
+  function saveLostTokens(address token) external;
+
+  /**
+   * @notice Transfer the moderator right to a new address
+   * @param newModerator The address of new moderator
+   **/
+  function transferModerator(address newModerator) external;
 
   // /**
   //  * @notice Returns whether a transfer is valid
