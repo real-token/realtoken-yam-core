@@ -10,6 +10,8 @@ describe("SwapCatUpgradeable", function () {
   async function makeSuite() {
     const [admin, moderator, user1, user2]: SignerWithAddress[] =
       await ethers.getSigners();
+    const COMPLIANCE_REGISTRY = "0x3221a28ed2b2e955da64d1d299956f277562c95c";
+    const TRUSTED_INTERMEDIARY = "0x296033cb983747b68911244ec1a3f01d7708851b";
 
     const RealTokenTest = await ethers.getContractFactory("RealTokenTest");
     const realTokenTest = await RealTokenTest.deploy();
@@ -25,8 +27,8 @@ describe("SwapCatUpgradeable", function () {
       [
         admin.address,
         moderator.address,
-        process.env.COMPLIANCE_REGISTRY,
-        process.env.TRUSTED_INTERMEDIARY,
+        COMPLIANCE_REGISTRY,
+        TRUSTED_INTERMEDIARY,
       ]
     )) as SwapCatUpgradeable;
 
@@ -368,22 +370,22 @@ describe("SwapCatUpgradeable", function () {
     });
   });
 
-  describe("5. Upgradeability", function () {
-    it("Should be able to upgrade by the upgrader admin", async function () {
-      const { swapCatUpgradeable } = await loadFixture(makeSuite);
-      const SwapCatUpgradeableV2 = await ethers.getContractFactory(
-        "SwapCatUpgradeableV2"
-      );
-      const swapCatUpgradeableV2 = (await upgrades.upgradeProxy(
-        swapCatUpgradeable.address,
-        SwapCatUpgradeableV2,
-        { kind: "uups" }
-      )) as SwapCatUpgradeableV2;
-      await swapCatUpgradeableV2.deployed();
-    });
+  // describe("5. Upgradeability", function () {
+  // it("Should be able to upgrade by the upgrader admin", async function () {
+  //   const { swapCatUpgradeable } = await loadFixture(makeSuite);
+  //   const SwapCatUpgradeableV2 = await ethers.getContractFactory(
+  //     "SwapCatUpgradeableV2"
+  //   );
+  //   const swapCatUpgradeableV2 = (await upgrades.upgradeProxy(
+  //     swapCatUpgradeable.address,
+  //     SwapCatUpgradeableV2,
+  //     { kind: "uups" }
+  //   )) as SwapCatUpgradeableV2;
+  //   await swapCatUpgradeableV2.deployed();
+  // });
 
-    it("Should not be able to upgrade by others", async function () {});
-  });
+  //   it("Should not be able to upgrade by others", async function () {});
+  // });
 
   // TODO add more tests
 });

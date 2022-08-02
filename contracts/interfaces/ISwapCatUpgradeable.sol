@@ -175,21 +175,4 @@ interface ISwapCatUpgradeable {
    * @param newModerator The address of new moderator
    **/
   function transferModerator(address newModerator) external;
-
-  // /**
-  //  * @notice Returns whether a transfer is valid
-  //  * @param token The token address
-  //  * @param from The sender address
-  //  * @param to The receiver address
-  //  * @param amount The token amount
-  //  * @param timestamp The timestamp of the transfer
-  //  * @return true if the token is whitelisted, false otherwise
-  //  **/
-  // function isTransferValid(
-  //   address token,
-  //   address from,
-  //   address to,
-  //   uint256 amount,
-  //   uint256 timestamp
-  // ) external view returns (bool);
 }
