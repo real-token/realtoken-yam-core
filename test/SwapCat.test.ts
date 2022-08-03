@@ -168,8 +168,14 @@ describe("SwapCatUpgradeable", function () {
     });
 
     it("Modify Offer/Delete Offer by owner: should work", async function () {
-      const { realTokenTest, usdcTokenTest, swapCatUpgradeable, user1, user2 } =
-        await loadFixture(makeSuite);
+      const {
+        realTokenTest,
+        usdcTokenTest,
+        swapCatUpgradeable,
+        admin,
+        user1,
+        user2,
+      } = await loadFixture(makeSuite);
 
       // Whitelist the RealTokenTest
       await expect(swapCatUpgradeable.toggleWhitelist(realTokenTest.address))
@@ -216,15 +222,38 @@ describe("SwapCatUpgradeable", function () {
           .createOffer(realTokenTest.address, usdcTokenTest.address, 20, 1)
       ).to.revertedWith("only the seller can change offer");
 
-      // Revert when user 2 deletes the price of the second offer, offerId = 1
+      // Revert when user 2 deletes the offer, offerId = 1
       await expect(
         swapCatUpgradeable.connect(user2).deleteOffer(1)
       ).to.revertedWith("only the seller can delete offer");
 
-      // Emit the "OfferDeleted" event when user 1 deletes the price of the second offer, offerId = 1
-      await expect(swapCatUpgradeable.connect(user1).deleteOffer(1))
+      // Revert when user 1 deletes the offer using deleteOfferByAdmin, offerId = 1
+      await expect(
+        swapCatUpgradeable.connect(user1).deleteOfferByAdmin(1)
+      ).to.revertedWith(
+        `AccessControl: account ${user1.address.toLowerCase()} is missing role ${await swapCatUpgradeable.DEFAULT_ADMIN_ROLE()}`
+      );
+
+      // Test deleteOfferByAdmin function
+      // Admin deletes the offer, offerId = 1
+      await expect(swapCatUpgradeable.connect(admin).deleteOfferByAdmin(1))
         .to.emit(swapCatUpgradeable, "OfferDeleted")
         .withArgs(1);
+
+      // User1 create a new offer, offerId = 2
+      await expect(
+        swapCatUpgradeable
+          .connect(user1)
+          .createOffer(realTokenTest.address, usdcTokenTest.address, 30, 0)
+      )
+        .to.emit(swapCatUpgradeable, "OfferCreated")
+        .withArgs(realTokenTest.address, usdcTokenTest.address, 30, 2);
+
+      // Test deleteOffer function
+      // Emit the "OfferDeleted" event when user 1 deletes the price of the second offer, offerId = 2
+      await expect(swapCatUpgradeable.connect(user1).deleteOffer(2))
+        .to.emit(swapCatUpgradeable, "OfferDeleted")
+        .withArgs(2);
     });
 
     it("Buy: should work", async function () {
@@ -367,6 +396,25 @@ describe("SwapCatUpgradeable", function () {
           await realTokenTest.balanceOf(swapCatUpgradeable.address)
         );
       expect(await realTokenTest.balanceOf(moderator.address)).to.equal(200);
+    });
+  });
+  describe("5. Transfer moderator role", function () {
+    it("should not allow non-moderator to transfer moderator role", async function () {
+      const { swapCatUpgradeable, admin, user1 } = await loadFixture(makeSuite);
+      await expect(
+        swapCatUpgradeable.connect(admin).transferModerator(user1.address)
+      ).to.revertedWith(`Caller is not moderator`);
+    });
+
+    it("should allow moderator to transfer moderator role", async function () {
+      const { swapCatUpgradeable, moderator, user1 } = await loadFixture(
+        makeSuite
+      );
+      await expect(
+        swapCatUpgradeable.connect(moderator).transferModerator(user1.address)
+      )
+        .to.emit(swapCatUpgradeable, "ModeratorTransferred")
+        .withArgs(moderator.address, user1.address);
     });
   });
 
