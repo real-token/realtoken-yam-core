@@ -62,8 +62,8 @@ describe("SwapCatUpgradeable", function () {
     await swapCatUpgradeable
       .connect(admin)
       .toggleWhitelist(usdcTokenTest.address);
-    await realTokenTest.transfer(user1.address, amount1);
-    await usdcTokenTest.transfer(user2.address, amount2);
+    await realTokenTest.transfer(user1.address, amount1); // Send 1000 RTT to user1
+    await usdcTokenTest.transfer(user2.address, amount2); // Send 1000 USDC to user2
 
     return {
       realTokenTest,
@@ -76,6 +76,48 @@ describe("SwapCatUpgradeable", function () {
     };
   }
 
+  async function makeSuiteWhitelistAndCreateOffer() {
+    const {
+      realTokenTest,
+      usdcTokenTest,
+      swapCatUpgradeable,
+      admin,
+      moderator,
+      user1,
+      user2,
+    } = await loadFixture(makeSuiteWhitelist);
+    // Create offer: offerId = 0
+    await swapCatUpgradeable
+      .connect(user1)
+      .createOffer(realTokenTest.address, usdcTokenTest.address, 50000000, 0);
+
+    // Create offer: offerId = 1
+    await swapCatUpgradeable
+      .connect(user1)
+      .createOffer(realTokenTest.address, usdcTokenTest.address, 55000000, 0);
+
+    await realTokenTest
+      .connect(user1)
+      .approve(
+        swapCatUpgradeable.address,
+        BigNumber.from("10000000000000000000")
+      );
+    await usdcTokenTest
+      .connect(user2)
+      .approve(swapCatUpgradeable.address, BigNumber.from("10000000"));
+
+    return {
+      realTokenTest,
+      usdcTokenTest,
+      swapCatUpgradeable,
+      admin,
+      moderator,
+      user1,
+      user2,
+    };
+  }
+
+  // Test 1: Deployment
   describe("1. Deployment", function () {
     it("Should initialize with the right admin", async function () {
       const { swapCatUpgradeable, admin } = await loadFixture(makeSuite);
@@ -106,6 +148,7 @@ describe("SwapCatUpgradeable", function () {
     });
   });
 
+  // Test 2: Whitelist
   describe("2. Whitelist/unWhitelist", function () {
     it("Whitelist/unWhitelist: should work with admin", async function () {
       const { realTokenTest, swapCatUpgradeable } = await loadFixture(
@@ -200,38 +243,21 @@ describe("SwapCatUpgradeable", function () {
       ).to.be.revertedWith("Token is not whitelisted");
     });
 
-    it("Modify Offer/Delete Offer by owner: should work", async function () {
-      const { realTokenTest, usdcTokenTest, swapCatUpgradeable, user1, user2 } =
-        await loadFixture(makeSuiteWhitelist);
-
-      // User 1 creates the first offer, offerId = 0 (only for testing)
+    it("Modify offer: seller should be able to modify the offer", async function () {
+      const { realTokenTest, usdcTokenTest, swapCatUpgradeable, user1 } =
+        await loadFixture(makeSuiteWhitelistAndCreateOffer);
       await expect(
         swapCatUpgradeable
           .connect(user1)
-          .createOffer(realTokenTest.address, usdcTokenTest.address, 10, 0)
+          .createOffer(realTokenTest.address, usdcTokenTest.address, 100, 1)
       )
         .to.emit(swapCatUpgradeable, "OfferCreated")
-        .withArgs(realTokenTest.address, usdcTokenTest.address, 10, 0);
+        .withArgs(realTokenTest.address, usdcTokenTest.address, 100, 1);
+    });
 
-      // User 1 creates the second offer, offerId = 1
-      await expect(
-        swapCatUpgradeable
-          .connect(user1)
-          .createOffer(realTokenTest.address, usdcTokenTest.address, 20, 0)
-      )
-        .to.emit(swapCatUpgradeable, "OfferCreated")
-        .withArgs(realTokenTest.address, usdcTokenTest.address, 20, 1);
-
-      // User 1 Modifies the price of the second offer, offerId = 1
-      await expect(
-        swapCatUpgradeable
-          .connect(user1)
-          .createOffer(realTokenTest.address, usdcTokenTest.address, 30, 1)
-      )
-        .to.emit(swapCatUpgradeable, "OfferCreated")
-        .withArgs(realTokenTest.address, usdcTokenTest.address, 30, 1);
-
-      expect(await swapCatUpgradeable.getOfferCount()).to.equal(1);
+    it("Modify offer: non-seller should not be able to modify the offer", async function () {
+      const { realTokenTest, usdcTokenTest, swapCatUpgradeable, user2 } =
+        await loadFixture(makeSuiteWhitelistAndCreateOffer);
 
       // Revert when user 2 modifies the price of the second offer, offerId = 1
       await expect(
@@ -239,39 +265,44 @@ describe("SwapCatUpgradeable", function () {
           .connect(user2)
           .createOffer(realTokenTest.address, usdcTokenTest.address, 20, 1)
       ).to.revertedWith("only the seller can change offer");
+    });
 
-      // Test function: deleteOffer
-      // Revert when user 2 deletes the offer, offerId = 1
-      await expect(
-        swapCatUpgradeable.connect(user2).deleteOffer(1)
-      ).to.revertedWith("only the seller can delete offer");
+    it("Delete Offer: seller should be able to delete the offer", async function () {
+      const { swapCatUpgradeable, user1 } = await loadFixture(
+        makeSuiteWhitelistAndCreateOffer
+      );
+
       // Emit the "OfferDeleted" event when user 1 deletes the price of the second offer, offerId = 2
       await expect(swapCatUpgradeable.connect(user1).deleteOffer(1))
         .to.emit(swapCatUpgradeable, "OfferDeleted")
         .withArgs(1);
     });
 
-    it("Delete offer by admin: should work", async function () {
-      const { realTokenTest, usdcTokenTest, swapCatUpgradeable, admin, user1 } =
-        await loadFixture(makeSuiteWhitelist);
+    it("DeleteOffer: non-seller should not be able to delete offer", async function () {
+      const { swapCatUpgradeable, user2 } = await loadFixture(
+        makeSuiteWhitelistAndCreateOffer
+      );
 
-      // User 1 creates the first offer, offerId = 0 (only for testing)
+      // Revert when user 2 deletes the offer, offerId = 1
       await expect(
-        swapCatUpgradeable
-          .connect(user1)
-          .createOffer(realTokenTest.address, usdcTokenTest.address, 10, 0)
-      )
-        .to.emit(swapCatUpgradeable, "OfferCreated")
-        .withArgs(realTokenTest.address, usdcTokenTest.address, 10, 0);
+        swapCatUpgradeable.connect(user2).deleteOffer(1)
+      ).to.revertedWith("only the seller can delete offer");
+    });
+    it("deleteOfferByAdmin: admin can call this function", async function () {
+      const { swapCatUpgradeable, admin } = await loadFixture(
+        makeSuiteWhitelistAndCreateOffer
+      );
 
-      // User 1 creates the second offer, offerId = 1
-      await expect(
-        swapCatUpgradeable
-          .connect(user1)
-          .createOffer(realTokenTest.address, usdcTokenTest.address, 20, 0)
-      )
-        .to.emit(swapCatUpgradeable, "OfferCreated")
-        .withArgs(realTokenTest.address, usdcTokenTest.address, 20, 1);
+      // Admin deletes the offer, offerId = 1
+      await expect(swapCatUpgradeable.connect(admin).deleteOfferByAdmin(1))
+        .to.emit(swapCatUpgradeable, "OfferDeleted")
+        .withArgs(1);
+    });
+
+    it("deleteOfferByAdmin: non-admin can not call this function", async function () {
+      const { swapCatUpgradeable, user1 } = await loadFixture(
+        makeSuiteWhitelistAndCreateOffer
+      );
 
       // Test function: deleteOfferByAdmin
       // Revert when user 1 deletes the offer using deleteOfferByAdmin, offerId = 1
@@ -280,48 +311,19 @@ describe("SwapCatUpgradeable", function () {
       ).to.revertedWith(
         `AccessControl: account ${user1.address.toLowerCase()} is missing role ${await swapCatUpgradeable.DEFAULT_ADMIN_ROLE()}`
       );
-      // Admin deletes the offer, offerId = 1
-      await expect(swapCatUpgradeable.connect(admin).deleteOfferByAdmin(1))
-        .to.emit(swapCatUpgradeable, "OfferDeleted")
-        .withArgs(1);
     });
+  });
 
-    it("Functions tokenInfo, showOffer, pricePreview, Buy: should work", async function () {
-      const { realTokenTest, usdcTokenTest, swapCatUpgradeable, user1, user2 } =
-        await loadFixture(makeSuiteWhitelist);
-
-      await expect(
-        realTokenTest.connect(user1).approve(swapCatUpgradeable.address, 20)
-      )
-        .to.emit(realTokenTest, "Approval")
-        .withArgs(user1.address, swapCatUpgradeable.address, 20);
-      expect(
-        await realTokenTest.allowance(user1.address, swapCatUpgradeable.address)
-      ).to.equal(20);
-
-      await expect(
-        usdcTokenTest.connect(user2).approve(swapCatUpgradeable.address, 200)
-      )
-        .to.emit(usdcTokenTest, "Approval")
-        .withArgs(user2.address, swapCatUpgradeable.address, 200);
-      expect(
-        await usdcTokenTest.allowance(user2.address, swapCatUpgradeable.address)
-      ).to.equal(200);
-
-      await expect(
-        swapCatUpgradeable
-          .connect(user1)
-          .createOffer(
-            realTokenTest.address,
-            usdcTokenTest.address,
-            55000000,
-            0
-          )
-      )
-        .to.emit(swapCatUpgradeable, "OfferCreated")
-        .withArgs(realTokenTest.address, usdcTokenTest.address, 55000000, 0);
-
-      // Test function: tokenInfo
+  describe("4. View functions: getOfferCount/tokenInfo/showOffer/pricePreview", function () {
+    it("getOfferCount: should return the correct number of offers", async function () {
+      const { swapCatUpgradeable } = await loadFixture(
+        makeSuiteWhitelistAndCreateOffer
+      );
+      expect(await swapCatUpgradeable.getOfferCount()).to.equal(1);
+    });
+    it("Function tokenInfo: should work", async function () {
+      const { realTokenTest, usdcTokenTest, swapCatUpgradeable } =
+        await loadFixture(makeSuiteWhitelistAndCreateOffer);
       expect(
         await swapCatUpgradeable.tokenInfo(realTokenTest.address)
       ).to.deep.equal([
@@ -329,13 +331,25 @@ describe("SwapCatUpgradeable", function () {
         await realTokenTest.symbol(),
         await realTokenTest.name(),
       ]);
+      expect(
+        await swapCatUpgradeable.tokenInfo(usdcTokenTest.address)
+      ).to.deep.equal([
+        BigNumber.from(await usdcTokenTest.decimals()),
+        await usdcTokenTest.symbol(),
+        await usdcTokenTest.name(),
+      ]);
+    });
+
+    it("Function showOffer: should work", async function () {
+      const { realTokenTest, usdcTokenTest, swapCatUpgradeable, user1 } =
+        await loadFixture(makeSuiteWhitelistAndCreateOffer);
 
       // Test function: showOffer (offerToken buyerToken, sellerAddress, price)
       expect((await swapCatUpgradeable.showOffer(0)).slice(0, 4)).to.eql([
         realTokenTest.address,
         usdcTokenTest.address,
         user1.address,
-        BigNumber.from("55000000"),
+        BigNumber.from("50000000"),
       ]);
 
       // Test function: showOffer (availablebalance)
@@ -361,26 +375,84 @@ describe("SwapCatUpgradeable", function () {
       expect((await swapCatUpgradeable.showOffer(0))[4]).to.equal(
         await realTokenTest.balanceOf(user1.address)
       );
+    });
 
-      // TODO check price calculation
+    it("Function pricePreview: should work", async function () {
+      const { swapCatUpgradeable } = await loadFixture(
+        makeSuiteWhitelistAndCreateOffer
+      );
+
       // Test pricePreview function
       expect(
         await swapCatUpgradeable.pricePreview(
           0,
           BigNumber.from(1000000000000000)
         )
-      ).to.equal(BigNumber.from(55001));
+      ).to.equal(BigNumber.from(50001));
+    });
+  });
 
+  describe("5. Buy function with checking transfer validity", function () {
+    it("Function buy: should revert when price is wrong", async function () {
+      const { swapCatUpgradeable, user2 } = await loadFixture(
+        makeSuiteWhitelistAndCreateOffer
+      );
+
+      await expect(
+        swapCatUpgradeable.connect(user2).buy(1, 1000000000000000, 50000000) // price was 55000000
+      ).to.revertedWith("offer price wrong");
+    });
+    it("Function buy: should work", async function () {
+      const { realTokenTest, usdcTokenTest, swapCatUpgradeable, user1, user2 } =
+        await loadFixture(makeSuiteWhitelistAndCreateOffer);
+      // TODO: deploy bridge token to test 3 rules
       // Test buy function
-      // expect(
-      //   await swapCatUpgradeable
-      //     .connect(user2)
-      //     .buy(0, 1000000000000000, 55000000)
+      // await expect(
+      //   swapCatUpgradeable.connect(user2).buy(1, 1000000000000000, 55000000)
       // ).to.emit(swapCatUpgradeable, "OfferAccepted");
     });
   });
 
-  describe("4. Save lost tokens", function () {
+  describe("6. Save lost tokens", function () {
+    it("should allow withdrawing by the moderator", async function () {
+      const { realTokenTest, swapCatUpgradeable, moderator } =
+        await loadFixture(makeSuite);
+
+      await realTokenTest.transfer(swapCatUpgradeable.address, 200);
+      expect(
+        await realTokenTest.balanceOf(swapCatUpgradeable.address)
+      ).to.equal(200);
+
+      // Moderator can withdraw tokens
+      await expect(
+        swapCatUpgradeable
+          .connect(moderator)
+          .saveLostTokens(realTokenTest.address)
+      )
+        .to.emit(realTokenTest, "Transfer")
+        .withArgs(
+          swapCatUpgradeable.address,
+          moderator.address,
+          await realTokenTest.balanceOf(swapCatUpgradeable.address)
+        );
+      expect(await realTokenTest.balanceOf(moderator.address)).to.equal(200);
+    });
+
+    it("should not allow withdrawing by non-moderator", async function () {
+      const { realTokenTest, swapCatUpgradeable, admin, user1 } =
+        await loadFixture(makeSuite);
+
+      // Admin can not withdraw tokens
+      await expect(
+        swapCatUpgradeable.connect(admin).saveLostTokens(realTokenTest.address)
+      ).to.revertedWith(`Caller is not moderator`);
+
+      // User can not withdraw tokens
+      await expect(
+        swapCatUpgradeable.connect(user1).saveLostTokens(realTokenTest.address)
+      ).to.revertedWith(`Caller is not moderator`);
+    });
+
     it("Should not be able to transfer ethers to the contract", async function () {
       const { admin, swapCatUpgradeable } = await loadFixture(makeSuite);
       const provider = await ethers.getDefaultProvider();
@@ -402,42 +474,8 @@ describe("SwapCatUpgradeable", function () {
       // expect(await provider.getBalance(moderator.address)).to.equal(1);
       // expect(await provider.getBalance(swapCatUpgradeable.address)).to.equal(0);
     });
-
-    it("should allow withdrawing by the moderator", async function () {
-      const { realTokenTest, swapCatUpgradeable, admin, moderator, user1 } =
-        await loadFixture(makeSuite);
-
-      await realTokenTest.transfer(swapCatUpgradeable.address, 200);
-      expect(
-        await realTokenTest.balanceOf(swapCatUpgradeable.address)
-      ).to.equal(200);
-
-      // Admin can not withdraw tokens
-      await expect(
-        swapCatUpgradeable.connect(admin).saveLostTokens(realTokenTest.address)
-      ).to.revertedWith(`Caller is not moderator`);
-
-      // User can not withdraw tokens
-      await expect(
-        swapCatUpgradeable.connect(user1).saveLostTokens(realTokenTest.address)
-      ).to.revertedWith(`Caller is not moderator`);
-
-      // Moderator can withdraw tokens
-      await expect(
-        swapCatUpgradeable
-          .connect(moderator)
-          .saveLostTokens(realTokenTest.address)
-      )
-        .to.emit(realTokenTest, "Transfer")
-        .withArgs(
-          swapCatUpgradeable.address,
-          moderator.address,
-          await realTokenTest.balanceOf(swapCatUpgradeable.address)
-        );
-      expect(await realTokenTest.balanceOf(moderator.address)).to.equal(200);
-    });
   });
-  describe("5. Transfer moderator role", function () {
+  describe("7. Transfer moderator role", function () {
     it("should not allow non-moderator to transfer moderator role", async function () {
       const { swapCatUpgradeable, admin, user1 } = await loadFixture(makeSuite);
       await expect(
@@ -457,7 +495,7 @@ describe("SwapCatUpgradeable", function () {
     });
   });
 
-  // describe("5. Upgradeability", function () {
+  // describe("8. Upgradeability", function () {
   // it("Should be able to upgrade by the upgrader admin", async function () {
   //   const { swapCatUpgradeable } = await loadFixture(makeSuite);
   //   const SwapCatUpgradeableV2 = await ethers.getContractFactory(
