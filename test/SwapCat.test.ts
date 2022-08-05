@@ -1,3 +1,7 @@
+import { Processor } from "./../typechain/Processor.d";
+import { RuleEngine } from "./../typechain/RuleEngine.d";
+import { BridgeERC20__factory } from "./../typechain/factories/BridgeERC20__factory";
+import { BridgeToken } from "../typechain/BridgeToken";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { keccak256, toUtf8Bytes } from "ethers/lib/utils";
@@ -6,6 +10,7 @@ import { SwapCatUpgradeable } from "../typechain/SwapCatUpgradeable";
 import { SwapCatUpgradeableV2 } from "../typechain/SwapCatUpgradeableV2";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { BigNumber } from "ethers";
+import { ComplianceRegistry } from "../typechain/ComplianceRegistry";
 
 describe("SwapCatUpgradeable", function () {
   async function makeSuite() {
@@ -403,8 +408,53 @@ describe("SwapCatUpgradeable", function () {
       ).to.revertedWith("offer price wrong");
     });
     it("Function buy: should work", async function () {
-      const { realTokenTest, usdcTokenTest, swapCatUpgradeable, user1, user2 } =
-        await loadFixture(makeSuiteWhitelistAndCreateOffer);
+      const {
+        realTokenTest,
+        usdcTokenTest,
+        swapCatUpgradeable,
+        admin,
+        user1,
+        user2,
+      } = await loadFixture(makeSuiteWhitelistAndCreateOffer);
+
+      const RuleEngineFactory = await ethers.getContractFactory("RuleEngine");
+      const ProcessorFactory = await ethers.getContractFactory("Processor");
+      const BridgeTokenFactory = await ethers.getContractFactory("BridgeToken");
+      const ComplianceRegistryFactory = await ethers.getContractFactory(
+        "ComplianceRegistry"
+      );
+
+      const complianceRegistry = (await upgrades.deployProxy(
+        ComplianceRegistryFactory,
+        [admin.address] // owner address
+      )) as ComplianceRegistry;
+
+      const ruleEngine = (await upgrades.deployProxy(RuleEngineFactory, [
+        admin.address, // owner address
+      ])) as RuleEngine;
+
+      const processor = (await upgrades.deployProxy(
+        ProcessorFactory,
+        [admin.address, ruleEngine.address], // owner address, ruleEngine address
+        { initializer: "initialize(address owner, address _ruleEngine)" }
+      )) as Processor;
+
+      const bridgeToken = await upgrades.deployProxy(
+        BridgeTokenFactory,
+        [
+          admin.address, // owner address
+          processor.address, // processor address
+          "Bridge Token Test", // name
+          "BTT", // symbol
+          18, // decimals
+          [admin.address], // trustedIntermediaries
+        ],
+        {
+          initializer:
+            "initialize(address owner, address processor, string name, string symbol, uint8 decimals, address[] trustedIntermediaries)",
+        }
+      );
+
       // TODO: deploy bridge token to test 3 rules
       // Test buy function
       // await expect(
@@ -454,8 +504,33 @@ describe("SwapCatUpgradeable", function () {
     });
 
     it("Should not be able to transfer ethers to the contract", async function () {
-      const { admin, swapCatUpgradeable } = await loadFixture(makeSuite);
-      const provider = await ethers.getDefaultProvider();
+      const { admin, moderator, swapCatUpgradeable } = await loadFixture(
+        makeSuite
+      );
+      const balanceAdmin = await ethers.provider.getBalance(admin.address);
+      const balanceMod = await ethers.provider.getBalance(moderator.address);
+      const balanceSwapCat = await ethers.provider.getBalance(
+        swapCatUpgradeable.address
+      );
+      console.log("Admin ether balance ", balanceAdmin.toString());
+      console.log("Moderator ether balance ", balanceMod.toString());
+      console.log("SwapCat contract ether balance ", balanceSwapCat.toString());
+
+      // Check if the admin can transfer ethers to another address
+      await admin.sendTransaction({
+        to: moderator.address,
+        value: ethers.utils.parseEther("10"), // Admin sends 10 ethers to moderator
+      });
+
+      console.log(await ethers.provider.getBalance(moderator.address));
+      expect(await ethers.provider.getBalance(moderator.address)).to.equal(
+        balanceMod.add(ethers.utils.parseEther("10"))
+      );
+
+      expect(
+        await ethers.provider.getBalance(swapCatUpgradeable.address)
+      ).to.equal(0);
+      // Revert when sending ethers to the contract
       await expect(
         admin.sendTransaction({
           to: swapCatUpgradeable.address,
@@ -464,15 +539,6 @@ describe("SwapCatUpgradeable", function () {
       ).to.be.revertedWith(
         "function selector was not recognized and there's no fallback nor receive function"
       );
-
-      // TODO check if the admin can transfer ethers to another address
-      // await admin.sendTransaction({
-      //   to: moderator.address,
-      //   value: ethers.utils.parseEther("10"), // Sends exactly 1.0 ether
-      // });
-      // console.log(await provider.getBalance(moderator.address));
-      // expect(await provider.getBalance(moderator.address)).to.equal(1);
-      // expect(await provider.getBalance(swapCatUpgradeable.address)).to.equal(0);
     });
   });
   describe("7. Transfer moderator role", function () {
@@ -495,6 +561,7 @@ describe("SwapCatUpgradeable", function () {
     });
   });
 
+  // TODO Upgradeability working, uncomment when the contract is finalized
   // describe("8. Upgradeability", function () {
   // it("Should be able to upgrade by the upgrader admin", async function () {
   //   const { swapCatUpgradeable } = await loadFixture(makeSuite);
@@ -511,6 +578,4 @@ describe("SwapCatUpgradeable", function () {
 
   //   it("Should not be able to upgrade by others", async function () {});
   // });
-
-  // TODO add more tests
 });
