@@ -11,6 +11,7 @@ import { SwapCatUpgradeableV2 } from "../typechain/SwapCatUpgradeableV2";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { BigNumber } from "ethers";
 import { ComplianceRegistry } from "../typechain/ComplianceRegistry";
+import { UserAttributeValidToRule } from "../typechain/UserAttributeValidToRule";
 
 describe("SwapCatUpgradeable", function () {
   async function makeSuite() {
@@ -423,15 +424,39 @@ describe("SwapCatUpgradeable", function () {
       const ComplianceRegistryFactory = await ethers.getContractFactory(
         "ComplianceRegistry"
       );
+      const UserAttributeValidToRuleFactory = await ethers.getContractFactory(
+        "UserAttributeValidToRule"
+      );
 
       const complianceRegistry = (await upgrades.deployProxy(
         ComplianceRegistryFactory,
         [admin.address] // owner address
       )) as ComplianceRegistry;
+      const userAttributeValidToRule = (await upgrades.deployProxy(
+        UserAttributeValidToRuleFactory,
+        [complianceRegistry.address]
+      )) as UserAttributeValidToRule;
 
       const ruleEngine = (await upgrades.deployProxy(RuleEngineFactory, [
         admin.address, // owner address
       ])) as RuleEngine;
+      // await ruleEngine.setRules([]);
+      await ruleEngine.setRules([
+        userAttributeValidToRule.address,
+        userAttributeValidToRule.address,
+        userAttributeValidToRule.address,
+        userAttributeValidToRule.address,
+        userAttributeValidToRule.address,
+        userAttributeValidToRule.address,
+        userAttributeValidToRule.address,
+        userAttributeValidToRule.address,
+        userAttributeValidToRule.address,
+        userAttributeValidToRule.address,
+        userAttributeValidToRule.address,
+        userAttributeValidToRule.address,
+        userAttributeValidToRule.address,
+        userAttributeValidToRule.address,
+      ]);
 
       const processor = (await upgrades.deployProxy(
         ProcessorFactory,
@@ -454,6 +479,34 @@ describe("SwapCatUpgradeable", function () {
             "initialize(address owner, address processor, string name, string symbol, uint8 decimals, address[] trustedIntermediaries)",
         }
       );
+
+      await bridgeToken.connect(admin).setRules(["11"], ["100001"]); // tokenId (rule 11), isFrozen (rule 1), tokenId (rule 1), VestingTimestamp(rule 12)
+
+      console.log("Console log");
+      console.log(await bridgeToken.rules());
+
+      await bridgeToken.addAdministrator(admin.address);
+      await bridgeToken.addSupplier(admin.address);
+      await bridgeToken.mint(
+        admin.address,
+        BigNumber.from("1000000000000000000000000")
+      );
+      console.log("Admin balance");
+      console.log(await bridgeToken.balanceOf(admin.address));
+      console.log("Rule length");
+      const leng = await ruleEngine.ruleLength();
+      console.log(leng);
+      await complianceRegistry.registerUser(
+        user1.address,
+        [BigNumber.from("100001")],
+        [1]
+      );
+
+      await bridgeToken.transfer(
+        user1.address,
+        BigNumber.from("10000000000000000")
+      );
+      console.log("User1 balance", await bridgeToken.balanceOf(user1.address));
 
       // TODO: deploy bridge token to test 3 rules
       // Test buy function
