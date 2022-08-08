@@ -109,7 +109,7 @@ const config: HardhatUserConfig = {
   networks: networks,
   gasReporter: {
     coinmarketcap: process.env.REPORT_GAS,
-    gasPrice: 20,
+    gasPrice: 10,
     enabled: process.env.REPORT_GAS !== undefined,
     currency: "USD",
   },
