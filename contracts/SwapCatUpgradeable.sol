@@ -286,15 +286,15 @@ contract SwapCatUpgradeable is
   ) private view returns (bool) {
     // Rules [11, 1, 111]
 
-    // Get to see whether the token is frozen (rule 1)
-    (, uint256 isFrozen) = (IBridgeToken(_token).rule(1));
-    // Check rule index 1 (User Freeze Rule)
-    require(isFrozen == 0, "Transfer is frozen");
+    // // Get to see whether the token is frozen (rule 1)
+    // (, uint256 isFrozen) = (IBridgeToken(_token).rule(1));
+    // // Check rule index 1 (User Freeze Rule)
+    // require(isFrozen == 0, "Transfer is frozen");
 
-    // Get token vesting time (rule 111)
-    (, uint256 vestingTimestamp) = (IBridgeToken(_token).rule(2));
-    // Check rule index 111 (Vesting Rule): the current timestamp must be greater than the vesting timestamp
-    require(block.timestamp > vestingTimestamp, "Vesting time is not finished");
+    // // Get token vesting time (rule 111)
+    // (, uint256 vestingTimestamp) = (IBridgeToken(_token).rule(2));
+    // // Check rule index 111 (Vesting Rule): the current timestamp must be greater than the vesting timestamp
+    // require(block.timestamp > vestingTimestamp, "Vesting time is not finished");
 
     // Get to see if the seller and the buyer are whitelisted for the token
     // Check if the user is whitelisted for the token

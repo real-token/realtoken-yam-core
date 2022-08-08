@@ -1,41 +1,105 @@
-import { Processor } from "./../typechain/Processor.d";
-import { RuleEngine } from "./../typechain/RuleEngine.d";
-import { BridgeERC20__factory } from "./../typechain/factories/BridgeERC20__factory";
-import { BridgeToken } from "../typechain/BridgeToken";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
+import { BigNumber } from "ethers";
 import { keccak256, toUtf8Bytes } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
-import { SwapCatUpgradeable } from "../typechain/SwapCatUpgradeable";
-import { SwapCatUpgradeableV2 } from "../typechain/SwapCatUpgradeableV2";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { BigNumber } from "ethers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
+import { Processor } from "../typechain/Processor";
+import { RuleEngine } from "../typechain/RuleEngine";
 import { ComplianceRegistry } from "../typechain/ComplianceRegistry";
 import { UserAttributeValidToRule } from "../typechain/UserAttributeValidToRule";
+import { SwapCatUpgradeable } from "../typechain/SwapCatUpgradeable";
+import { SwapCatUpgradeableV2 } from "../typechain/SwapCatUpgradeableV2";
 
 describe("SwapCatUpgradeable", function () {
   async function makeSuite() {
     const [admin, moderator, user1, user2]: SignerWithAddress[] =
       await ethers.getSigners();
-    const COMPLIANCE_REGISTRY = "0x3221a28ed2b2e955da64d1d299956f277562c95c";
-    const TRUSTED_INTERMEDIARY = "0x296033cb983747b68911244ec1a3f01d7708851b";
-
     const RealTokenTest = await ethers.getContractFactory("RealTokenTest");
-    const realTokenTest = await RealTokenTest.deploy();
     const USDCTokenTest = await ethers.getContractFactory("USDCTokenTest");
-    const usdcTokenTest = await USDCTokenTest.deploy();
-
+    const RuleEngineFactory = await ethers.getContractFactory("RuleEngine");
+    const ProcessorFactory = await ethers.getContractFactory("Processor");
+    const BridgeTokenFactory = await ethers.getContractFactory("BridgeToken");
+    const UserAttributeValidToRuleFactory = await ethers.getContractFactory(
+      "UserAttributeValidToRule"
+    );
+    const ComplianceRegistryFactory = await ethers.getContractFactory(
+      "ComplianceRegistry"
+    );
     const SwapCatUpgradeableFactory = await ethers.getContractFactory(
       "SwapCatUpgradeable"
     );
 
+    const realTokenTest = await RealTokenTest.deploy();
+    const usdcTokenTest = await USDCTokenTest.deploy();
+
+    // Deploy ComplianceRegistry contract: owner = admin
+    const complianceRegistry = (await upgrades.deployProxy(
+      ComplianceRegistryFactory,
+      [admin.address]
+    )) as ComplianceRegistry;
+
+    // Deploy UserAttributeValidToRule contract
+    const userAttributeValidToRule = (await upgrades.deployProxy(
+      UserAttributeValidToRuleFactory,
+      [complianceRegistry.address]
+    )) as UserAttributeValidToRule;
+
+    // Deploy RuleEngine contract: owner = admin
+    const ruleEngine = (await upgrades.deployProxy(RuleEngineFactory, [
+      admin.address,
+    ])) as RuleEngine;
+
+    // Set rules in ruleEngine
+    await ruleEngine.setRules([
+      userAttributeValidToRule.address,
+      userAttributeValidToRule.address,
+      userAttributeValidToRule.address,
+      userAttributeValidToRule.address,
+      userAttributeValidToRule.address,
+      userAttributeValidToRule.address,
+      userAttributeValidToRule.address,
+      userAttributeValidToRule.address,
+      userAttributeValidToRule.address,
+      userAttributeValidToRule.address,
+      userAttributeValidToRule.address,
+      userAttributeValidToRule.address,
+      userAttributeValidToRule.address,
+    ]);
+
+    // Deploy Processor contract: owner = admin
+    const processor = (await upgrades.deployProxy(
+      ProcessorFactory,
+      [admin.address, ruleEngine.address], // owner address, ruleEngine address
+      { initializer: "initialize(address owner, address _ruleEngine)" }
+    )) as Processor;
+
+    // Deploy BridgeToken contract: owner = admin
+    const bridgeToken = await upgrades.deployProxy(
+      BridgeTokenFactory,
+      [
+        admin.address, // owner address
+        processor.address, // processor address
+        "Bridge Token Test", // name
+        "BTT", // symbol
+        18, // decimals
+        [admin.address], // trustedIntermediaries
+      ],
+      {
+        initializer:
+          "initialize(address owner, address processor, string name, string symbol, uint8 decimals, address[] trustedIntermediaries)",
+      }
+    );
+
+    // Deploy SwapCatUpgradeable contract
     const swapCatUpgradeable = (await upgrades.deployProxy(
       SwapCatUpgradeableFactory,
       [
         admin.address,
         moderator.address,
-        COMPLIANCE_REGISTRY,
-        TRUSTED_INTERMEDIARY,
+        complianceRegistry.address,
+        admin.address, // trustedIntermediary = admin
       ]
     )) as SwapCatUpgradeable;
 
@@ -43,6 +107,10 @@ describe("SwapCatUpgradeable", function () {
       realTokenTest,
       usdcTokenTest,
       swapCatUpgradeable,
+      complianceRegistry,
+      ruleEngine,
+      processor,
+      bridgeToken,
       admin,
       moderator,
       user1,
@@ -55,6 +123,9 @@ describe("SwapCatUpgradeable", function () {
       realTokenTest,
       usdcTokenTest,
       swapCatUpgradeable,
+      complianceRegistry,
+      ruleEngine,
+      bridgeToken,
       admin,
       moderator,
       user1,
@@ -68,6 +139,10 @@ describe("SwapCatUpgradeable", function () {
     await swapCatUpgradeable
       .connect(admin)
       .toggleWhitelist(usdcTokenTest.address);
+    await swapCatUpgradeable
+      .connect(admin)
+      .toggleWhitelist(bridgeToken.address);
+
     await realTokenTest.transfer(user1.address, amount1); // Send 1000 RTT to user1
     await usdcTokenTest.transfer(user2.address, amount2); // Send 1000 USDC to user2
 
@@ -75,6 +150,9 @@ describe("SwapCatUpgradeable", function () {
       realTokenTest,
       usdcTokenTest,
       swapCatUpgradeable,
+      complianceRegistry,
+      ruleEngine,
+      bridgeToken,
       admin,
       moderator,
       user1,
@@ -87,6 +165,9 @@ describe("SwapCatUpgradeable", function () {
       realTokenTest,
       usdcTokenTest,
       swapCatUpgradeable,
+      complianceRegistry,
+      ruleEngine,
+      bridgeToken,
       admin,
       moderator,
       user1,
@@ -116,6 +197,9 @@ describe("SwapCatUpgradeable", function () {
       realTokenTest,
       usdcTokenTest,
       swapCatUpgradeable,
+      complianceRegistry,
+      ruleEngine,
+      bridgeToken,
       admin,
       moderator,
       user1,
@@ -156,17 +240,21 @@ describe("SwapCatUpgradeable", function () {
 
   // Test 2: Whitelist
   describe("2. Whitelist/unWhitelist", function () {
-    it("Whitelist/unWhitelist: should work with admin", async function () {
+    it("Whitelist/unWhitelist: should work with admin and emit the right event", async function () {
       const { realTokenTest, swapCatUpgradeable } = await loadFixture(
         makeSuite
       );
-      await swapCatUpgradeable.toggleWhitelist(realTokenTest.address);
+      await expect(swapCatUpgradeable.toggleWhitelist(realTokenTest.address))
+        .to.emit(swapCatUpgradeable, "TokenWhitelisted")
+        .withArgs(realTokenTest.address);
 
       expect(
         await swapCatUpgradeable.isWhitelisted(realTokenTest.address)
       ).to.equal(true);
 
-      await swapCatUpgradeable.toggleWhitelist(realTokenTest.address);
+      await expect(swapCatUpgradeable.toggleWhitelist(realTokenTest.address))
+        .to.emit(swapCatUpgradeable, "TokenUnWhitelisted")
+        .withArgs(realTokenTest.address);
 
       expect(
         await swapCatUpgradeable.isWhitelisted(realTokenTest.address)
@@ -184,21 +272,9 @@ describe("SwapCatUpgradeable", function () {
         `AccessControl: account ${user1.address.toLowerCase()} is missing role ${await swapCatUpgradeable.DEFAULT_ADMIN_ROLE()}`
       );
     });
-
-    it("Whitelist/unWhitelist should emit the right event", async function () {
-      const { realTokenTest, swapCatUpgradeable } = await loadFixture(
-        makeSuite
-      );
-      await expect(swapCatUpgradeable.toggleWhitelist(realTokenTest.address))
-        .to.emit(swapCatUpgradeable, "TokenWhitelisted")
-        .withArgs(realTokenTest.address);
-
-      await expect(swapCatUpgradeable.toggleWhitelist(realTokenTest.address))
-        .to.emit(swapCatUpgradeable, "TokenUnWhitelisted")
-        .withArgs(realTokenTest.address);
-    });
   });
 
+  // Test 3: Create, modify, delete offer
   describe("3. Create/Modify/Delete Offer", function () {
     it("Create Offer: should create an offer when both tokens are whitelisted", async function () {
       const { realTokenTest, usdcTokenTest, swapCatUpgradeable } =
@@ -330,6 +406,7 @@ describe("SwapCatUpgradeable", function () {
     it("Function tokenInfo: should work", async function () {
       const { realTokenTest, usdcTokenTest, swapCatUpgradeable } =
         await loadFixture(makeSuiteWhitelistAndCreateOffer);
+
       expect(
         await swapCatUpgradeable.tokenInfo(realTokenTest.address)
       ).to.deep.equal([
@@ -337,6 +414,7 @@ describe("SwapCatUpgradeable", function () {
         await realTokenTest.symbol(),
         await realTokenTest.name(),
       ]);
+
       expect(
         await swapCatUpgradeable.tokenInfo(usdcTokenTest.address)
       ).to.deep.equal([
@@ -378,6 +456,7 @@ describe("SwapCatUpgradeable", function () {
           swapCatUpgradeable.address,
           BigNumber.from(await realTokenTest.balanceOf(user1.address)).add(1)
         );
+
       expect((await swapCatUpgradeable.showOffer(0))[4]).to.equal(
         await realTokenTest.balanceOf(user1.address)
       );
@@ -410,109 +489,118 @@ describe("SwapCatUpgradeable", function () {
     });
     it("Function buy: should work", async function () {
       const {
-        realTokenTest,
         usdcTokenTest,
         swapCatUpgradeable,
+        ruleEngine,
+        complianceRegistry,
+        bridgeToken,
         admin,
         user1,
         user2,
-      } = await loadFixture(makeSuiteWhitelistAndCreateOffer);
+      } = await loadFixture(makeSuiteWhitelist);
 
-      const RuleEngineFactory = await ethers.getContractFactory("RuleEngine");
-      const ProcessorFactory = await ethers.getContractFactory("Processor");
-      const BridgeTokenFactory = await ethers.getContractFactory("BridgeToken");
-      const ComplianceRegistryFactory = await ethers.getContractFactory(
-        "ComplianceRegistry"
-      );
-      const UserAttributeValidToRuleFactory = await ethers.getContractFactory(
-        "UserAttributeValidToRule"
-      );
+      // Set rules in bridgeToken
+      // Rule 11: tokenId
+      // Rule 1: isFrozen
+      // Rule 12: VestingTimestamp
+      // Source: https://github.com/MtPelerin/bridge-v2/blob/master/docs/RuleEngine.md
+      const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
+      const unlockTime = (await time.latest()) + ONE_YEAR_IN_SECS;
 
-      const complianceRegistry = (await upgrades.deployProxy(
-        ComplianceRegistryFactory,
-        [admin.address] // owner address
-      )) as ComplianceRegistry;
-      const userAttributeValidToRule = (await upgrades.deployProxy(
-        UserAttributeValidToRuleFactory,
-        [complianceRegistry.address]
-      )) as UserAttributeValidToRule;
+      await bridgeToken.connect(admin).setRules(["11"], ["100001"]);
+      // await bridgeToken
+      //   .connect(admin)
+      //   .setRules(["11", "12"], ["100001", unlockTime]);
+      console.log("BridgeToken Rules: ", await bridgeToken.rules());
+      console.log("Timestamp: ", await time.latest());
 
-      const ruleEngine = (await upgrades.deployProxy(RuleEngineFactory, [
-        admin.address, // owner address
-      ])) as RuleEngine;
-      // await ruleEngine.setRules([]);
-      await ruleEngine.setRules([
-        userAttributeValidToRule.address,
-        userAttributeValidToRule.address,
-        userAttributeValidToRule.address,
-        userAttributeValidToRule.address,
-        userAttributeValidToRule.address,
-        userAttributeValidToRule.address,
-        userAttributeValidToRule.address,
-        userAttributeValidToRule.address,
-        userAttributeValidToRule.address,
-        userAttributeValidToRule.address,
-        userAttributeValidToRule.address,
-        userAttributeValidToRule.address,
-        userAttributeValidToRule.address,
-        userAttributeValidToRule.address,
-      ]);
-
-      const processor = (await upgrades.deployProxy(
-        ProcessorFactory,
-        [admin.address, ruleEngine.address], // owner address, ruleEngine address
-        { initializer: "initialize(address owner, address _ruleEngine)" }
-      )) as Processor;
-
-      const bridgeToken = await upgrades.deployProxy(
-        BridgeTokenFactory,
-        [
-          admin.address, // owner address
-          processor.address, // processor address
-          "Bridge Token Test", // name
-          "BTT", // symbol
-          18, // decimals
-          [admin.address], // trustedIntermediaries
-        ],
-        {
-          initializer:
-            "initialize(address owner, address processor, string name, string symbol, uint8 decimals, address[] trustedIntermediaries)",
-        }
-      );
-
-      await bridgeToken.connect(admin).setRules(["11"], ["100001"]); // tokenId (rule 11), isFrozen (rule 1), tokenId (rule 1), VestingTimestamp(rule 12)
-
-      console.log("Console log");
-      console.log(await bridgeToken.rules());
-
+      // Set roles: administrator, supplier
       await bridgeToken.addAdministrator(admin.address);
       await bridgeToken.addSupplier(admin.address);
       await bridgeToken.mint(
         admin.address,
         BigNumber.from("1000000000000000000000000")
       );
-      console.log("Admin balance");
-      console.log(await bridgeToken.balanceOf(admin.address));
-      console.log("Rule length");
-      const leng = await ruleEngine.ruleLength();
-      console.log(leng);
+      console.log("Admin balance ", await bridgeToken.balanceOf(admin.address));
+      console.log("Rule length ", await ruleEngine.ruleLength());
+
+      // Whitelist user
+      await complianceRegistry.registerUser(
+        admin.address,
+        [BigNumber.from("100001")],
+        [1]
+      );
       await complianceRegistry.registerUser(
         user1.address,
         [BigNumber.from("100001")],
         [1]
       );
-
-      await bridgeToken.transfer(
-        user1.address,
-        BigNumber.from("10000000000000000")
+      await complianceRegistry.registerUser(
+        user2.address,
+        [BigNumber.from("100001")],
+        [1]
       );
-      console.log("User1 balance", await bridgeToken.balanceOf(user1.address));
+
+      // Transfer USDC to user1, bridgeToken to user2
+      await bridgeToken.transfer(user1.address, BigNumber.from("100000000000"));
+      await usdcTokenTest.transfer(
+        user1.address,
+        BigNumber.from("100000000000")
+      );
+
+      // Whitelist bridgetoken
+      console.log(
+        "User1 bridgetoken balance",
+        await bridgeToken.balanceOf(user1.address)
+      );
+      await expect(
+        swapCatUpgradeable
+          .connect(admin)
+          .createOffer(bridgeToken.address, usdcTokenTest.address, 60000000, 0)
+      )
+        .to.emit(swapCatUpgradeable, "OfferCreated")
+        .withArgs(bridgeToken.address, usdcTokenTest.address, 60000000, 0);
+
+      console.log("OfferCount: ", await swapCatUpgradeable.getOfferCount());
+
+      await bridgeToken
+        .connect(admin)
+        .approve(
+          swapCatUpgradeable.address,
+          BigNumber.from("1000000000000000000000")
+        );
+      await usdcTokenTest
+        .connect(user1)
+        .approve(
+          swapCatUpgradeable.address,
+          BigNumber.from("100000000000000000000000")
+        );
+      console.log(
+        "Admin bridgetoken balance: ",
+        await bridgeToken.balanceOf(admin.address)
+      );
+      console.log(
+        "User1 usdctoken balance: ",
+        await usdcTokenTest.balanceOf(user1.address)
+      );
+
+      await time.increaseTo(unlockTime);
+      console.log("Timestamp: ", await time.latest());
 
       // TODO: deploy bridge token to test 3 rules
       // Test buy function
       // await expect(
-      //   swapCatUpgradeable.connect(user2).buy(1, 1000000000000000, 55000000)
-      // ).to.emit(swapCatUpgradeable, "OfferAccepted");
+      //   swapCatUpgradeable
+      //     .connect(user1)
+      //     .buy(
+      //       BigNumber.from(0),
+      //       BigNumber.from("10000000000000000"),
+      //       BigNumber.from("60000000")
+      //     )
+      // )
+      //   .to.emit(swapCatUpgradeable, "OfferAccepted")
+      //   .withArgs(0, user1.address, BigNumber.from("10000000000000000"));
+      // console.log(await bridgeToken.balanceOf(user1.address));
     });
   });
 
@@ -615,20 +703,20 @@ describe("SwapCatUpgradeable", function () {
   });
 
   // TODO Upgradeability working, uncomment when the contract is finalized
-  // describe("8. Upgradeability", function () {
-  // it("Should be able to upgrade by the upgrader admin", async function () {
-  //   const { swapCatUpgradeable } = await loadFixture(makeSuite);
-  //   const SwapCatUpgradeableV2 = await ethers.getContractFactory(
-  //     "SwapCatUpgradeableV2"
-  //   );
-  //   const swapCatUpgradeableV2 = (await upgrades.upgradeProxy(
-  //     swapCatUpgradeable.address,
-  //     SwapCatUpgradeableV2,
-  //     { kind: "uups" }
-  //   )) as SwapCatUpgradeableV2;
-  //   await swapCatUpgradeableV2.deployed();
-  // });
+  describe("8. Upgradeability", function () {
+    it("Should be able to upgrade by the upgrader admin", async function () {
+      const { swapCatUpgradeable } = await loadFixture(makeSuite);
+      const SwapCatUpgradeableV2 = await ethers.getContractFactory(
+        "SwapCatUpgradeableV2"
+      );
+      const swapCatUpgradeableV2 = (await upgrades.upgradeProxy(
+        swapCatUpgradeable.address,
+        SwapCatUpgradeableV2,
+        { kind: "uups" }
+      )) as SwapCatUpgradeableV2;
+      await swapCatUpgradeableV2.deployed();
+    });
 
-  //   it("Should not be able to upgrade by others", async function () {});
-  // });
+    it("Should not be able to upgrade by others", async function () {});
+  });
 });

@@ -222,6 +222,11 @@ contract SwapCatUpgradeableV2 is
     // given price is being checked with recorded data from mappings
     require(price[_offerId] == _price, "offer price wrong");
 
+    // Check if the transfer is valid
+    require(
+      _isTransferValid(offerToken[_offerId], seller[_offerId], msg.sender),
+      "transfer is not valid"
+    );
     // calculate the price of the order
     uint256 buyerTokenAmount = (_offerTokenAmount * _price) /
       (uint256(10)**offerTokenInterface.decimals()) +
@@ -278,23 +283,24 @@ contract SwapCatUpgradeableV2 is
     address _token,
     address _from,
     address _to
-  ) internal view returns (bool) {
+  ) private view returns (bool) {
     // Rules [11, 1, 111]
 
-    // Get to see whether the token is frozen (rule 1)
-    (, uint256 isFrozen) = (IBridgeToken(_token).rule(1));
-    // Check rule index 1 (User Freeze Rule)
-    require(isFrozen == 0, "Transfer is frozen");
+    // // Get to see whether the token is frozen (rule 1)
+    // (, uint256 isFrozen) = (IBridgeToken(_token).rule(1));
+    // // Check rule index 1 (User Freeze Rule)
+    // require(isFrozen == 0, "Transfer is frozen");
 
-    // Get token vesting time (rule 111)
-    (, uint256 vestingTimestamp) = (IBridgeToken(_token).rule(2));
-    // Check rule index 111 (Vesting Rule): the current timestamp must be greater than the vesting timestamp
-    require(block.timestamp > vestingTimestamp, "Vesting time is not finished");
+    // // Get token vesting time (rule 111)
+    // (, uint256 vestingTimestamp) = (IBridgeToken(_token).rule(2));
+    // // Check rule index 111 (Vesting Rule): the current timestamp must be greater than the vesting timestamp
+    // require(block.timestamp > vestingTimestamp, "Vesting time is not finished");
 
     // Get to see if the seller and the buyer are whitelisted for the token
     // Check if the user is whitelisted for the token
     (, uint256 tokenId) = (IBridgeToken(_token).rule(0));
 
+    // Check if the seller is whitelisted for the token
     (uint256 sellerId, address sellerTrustedIntermediary) = _complianceRegistry
       .userId(_trustedIntermediaries, _from);
     uint256 isSellerWhitelisted = _complianceRegistry.attribute(
@@ -303,6 +309,7 @@ contract SwapCatUpgradeableV2 is
       tokenId
     );
 
+    // Check if the buyer is whitelisted for the token
     (uint256 buyerId, address buyerTrustedIntermediary) = _complianceRegistry
       .userId(_trustedIntermediaries, _to);
     uint256 isBuyerWhitelisted = _complianceRegistry.attribute(
@@ -310,7 +317,7 @@ contract SwapCatUpgradeableV2 is
       buyerId,
       tokenId
     );
-
+    // Both seller and user have to be whitelisted for the token, otherwise the transfer is not valid
     require(
       isSellerWhitelisted != 0 && isBuyerWhitelisted != 0,
       "User is not whitelisted"
