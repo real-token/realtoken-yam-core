@@ -52,14 +52,20 @@ import "./abstract/AbstractRule.sol";
  */
 
 contract VestingRule is Initializable, AbstractRule {
-  uint256 public constant VERSION = 1;
+  uint256 public constant VERSION = 2;
 
   uint256 internal constant BYPASS_KEY = 140;
+  uint256 internal constant BYPASS_DIRECTION_NONE = 0;
+  uint256 internal constant BYPASS_DIRECTION_RECEIVE = 1;
+  uint256 internal constant BYPASS_DIRECTION_SEND = 2;
+  uint256 internal constant BYPASS_DIRECTION_BOTH = 3;
+
+  uint256 internal constant INTERNAL_USER_NOT_FOUND = 42;
+
+  uint256 internal constant REASON_USER_NOT_FOUND = 2;
+  uint256 internal constant REASON_TRANSFERS_FROZEN_VESTING = 3;
 
   IComplianceRegistry private _complianceRegistry;
-
-  uint256 internal constant REASON_USER_NOT_FOUND = 1;
-  uint256 internal constant REASON_TRANSFERS_FROZEN_VESTING = 2;
 
   /**
    * @dev Initializer (replaces constructor when contract is upgradable)
@@ -89,17 +95,43 @@ contract VestingRule is Initializable, AbstractRule {
         return (TRANSFER_VALID_WITH_NO_HOOK, REASON_OK);
       address[] memory trustedIntermediaries = IGovernable(_token)
         .trustedIntermediaries();
-      (uint256 userId, address trustedIntermediary) = _complianceRegistry
-        .userId(trustedIntermediaries, _to);
-      if (userId == 0) return (TRANSFER_INVALID, REASON_USER_NOT_FOUND);
-      uint256 userAttribute = _complianceRegistry.attribute(
-        trustedIntermediary,
-        userId,
-        BYPASS_KEY
-      );
-      if (userAttribute == 0)
+
+      uint256 fromKey = _getBypassKeyValue(trustedIntermediaries, _from);
+      if (fromKey == INTERNAL_USER_NOT_FOUND)
+        return (TRANSFER_INVALID, REASON_USER_NOT_FOUND);
+      uint256 toKey = _getBypassKeyValue(trustedIntermediaries, _to);
+      if (toKey == INTERNAL_USER_NOT_FOUND)
+        return (TRANSFER_INVALID, REASON_USER_NOT_FOUND);
+      if (
+        fromKey == BYPASS_DIRECTION_NONE ||
+        fromKey == BYPASS_DIRECTION_RECEIVE ||
+        toKey == BYPASS_DIRECTION_NONE ||
+        toKey == BYPASS_DIRECTION_SEND
+      ) {
         return (TRANSFER_INVALID, REASON_TRANSFERS_FROZEN_VESTING);
+      }
     }
     return (TRANSFER_VALID_WITH_NO_HOOK, REASON_OK);
+  }
+
+  /**
+   * @dev Get address bypass keyvalue or 0 if user not found
+   * @param trustedIntermediaries array of trusted intermediaries defined at the token level
+   * @param userAddress address to check
+   * @return Bypass key value + 1 and 0 if user not found
+   */
+  function _getBypassKeyValue(
+    address[] memory trustedIntermediaries,
+    address userAddress
+  ) private view returns (uint256) {
+    (uint256 userId, address trustedIntermediary) = _complianceRegistry.userId(
+      trustedIntermediaries,
+      userAddress
+    );
+    if (userId == 0) {
+      return INTERNAL_USER_NOT_FOUND;
+    }
+    return
+      _complianceRegistry.attribute(trustedIntermediary, userId, BYPASS_KEY);
   }
 }
