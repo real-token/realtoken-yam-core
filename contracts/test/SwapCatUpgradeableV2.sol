@@ -19,6 +19,7 @@ contract SwapCatUpgradeableV2 is
   mapping(uint256 => address) internal seller;
   mapping(address => bool) public whitelistedTokens;
   uint256 internal offerCount;
+  address public admin; // admin address
   address public moderator; // moderator address, can move stuck funds
   IComplianceRegistry private _complianceRegistry;
   address private _trustedIntermediary;
@@ -38,6 +39,7 @@ contract SwapCatUpgradeableV2 is
 
     _grantRole(DEFAULT_ADMIN_ROLE, admin_);
     _grantRole(UPGRADER_ROLE, admin_);
+    admin = admin_;
     moderator = moderator_;
 
     _complianceRegistry = complianceRegistry_;
@@ -265,6 +267,10 @@ contract SwapCatUpgradeableV2 is
 
   /// @inheritdoc	ISwapCatUpgradeable
   function saveLostTokens(address token) external override onlyModerator {
+    require(
+      msg.sender == moderator || msg.sender == admin,
+      "only admin or moderator can move lost tokens"
+    );
     IERC20 tokenInterface = IERC20(token);
     tokenInterface.transfer(moderator, tokenInterface.balanceOf(address(this)));
   }
@@ -286,15 +292,15 @@ contract SwapCatUpgradeableV2 is
   ) private view returns (bool) {
     // Rules [11, 1, 111]
 
-    // // Get to see whether the token is frozen (rule 1)
-    // (, uint256 isFrozen) = (IBridgeToken(_token).rule(1));
-    // // Check rule index 1 (User Freeze Rule)
-    // require(isFrozen == 0, "Transfer is frozen");
+    // Get to see whether the token is frozen (rule 1)
+    (, uint256 isFrozen) = (IBridgeToken(_token).rule(1));
+    // Check rule index 1 (User Freeze Rule)
+    require(isFrozen == 0, "Transfer is frozen");
 
-    // // Get token vesting time (rule 111)
-    // (, uint256 vestingTimestamp) = (IBridgeToken(_token).rule(2));
-    // // Check rule index 111 (Vesting Rule): the current timestamp must be greater than the vesting timestamp
-    // require(block.timestamp > vestingTimestamp, "Vesting time is not finished");
+    // Get token vesting time (rule 111)
+    (, uint256 vestingTimestamp) = (IBridgeToken(_token).rule(2));
+    // Check rule index 111 (Vesting Rule): the current timestamp must be greater than the vesting timestamp
+    require(block.timestamp > vestingTimestamp, "Vesting time is not finished");
 
     // Get to see if the seller and the buyer are whitelisted for the token
     // Check if the user is whitelisted for the token

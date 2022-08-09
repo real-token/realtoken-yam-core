@@ -16,6 +16,7 @@ describe("SwapCatUpgradeable", function () {
   async function makeSuite() {
     const [admin, moderator, user1, user2]: SignerWithAddress[] =
       await ethers.getSigners();
+    const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
     const RealTokenTest = await ethers.getContractFactory("RealTokenTest");
     const USDCTokenTest = await ethers.getContractFactory("USDCTokenTest");
     const RuleEngineFactory = await ethers.getContractFactory("RuleEngine");
@@ -24,6 +25,10 @@ describe("SwapCatUpgradeable", function () {
     const UserAttributeValidToRuleFactory = await ethers.getContractFactory(
       "UserAttributeValidToRule"
     );
+    const UserFreezeRuleFactory = await ethers.getContractFactory(
+      "UserFreezeRule"
+    );
+    const VestingRuleFactory = await ethers.getContractFactory("VestingRule");
     const ComplianceRegistryFactory = await ethers.getContractFactory(
       "ComplianceRegistry"
     );
@@ -46,6 +51,16 @@ describe("SwapCatUpgradeable", function () {
       [complianceRegistry.address]
     )) as UserAttributeValidToRule;
 
+    // Deploy UserFreezeRule contract
+    const userFreezeRule = await upgrades.deployProxy(UserFreezeRuleFactory, [
+      complianceRegistry.address,
+    ]);
+
+    // Deploy VestingRule contract
+    const vestingRule = await upgrades.deployProxy(VestingRuleFactory, [
+      complianceRegistry.address,
+    ]);
+
     // Deploy RuleEngine contract: owner = admin
     const ruleEngine = (await upgrades.deployProxy(RuleEngineFactory, [
       admin.address,
@@ -53,19 +68,19 @@ describe("SwapCatUpgradeable", function () {
 
     // Set rules in ruleEngine
     await ruleEngine.setRules([
-      userAttributeValidToRule.address,
-      userAttributeValidToRule.address,
-      userAttributeValidToRule.address,
-      userAttributeValidToRule.address,
-      userAttributeValidToRule.address,
-      userAttributeValidToRule.address,
-      userAttributeValidToRule.address,
-      userAttributeValidToRule.address,
-      userAttributeValidToRule.address,
-      userAttributeValidToRule.address,
-      userAttributeValidToRule.address,
-      userAttributeValidToRule.address,
-      userAttributeValidToRule.address,
+      ZERO_ADDRESS,
+      userFreezeRule.address, // Rule 1
+      ZERO_ADDRESS,
+      ZERO_ADDRESS,
+      ZERO_ADDRESS,
+      ZERO_ADDRESS,
+      ZERO_ADDRESS,
+      ZERO_ADDRESS,
+      ZERO_ADDRESS,
+      ZERO_ADDRESS,
+      ZERO_ADDRESS,
+      userAttributeValidToRule.address, // Rule 11
+      vestingRule.address, // Rule 12
     ]);
 
     // Deploy Processor contract: owner = admin
@@ -506,11 +521,12 @@ describe("SwapCatUpgradeable", function () {
       // Source: https://github.com/MtPelerin/bridge-v2/blob/master/docs/RuleEngine.md
       const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
       const unlockTime = (await time.latest()) + ONE_YEAR_IN_SECS;
+      console.log("Unlock timestamp: ", unlockTime);
 
-      await bridgeToken.connect(admin).setRules(["11"], ["100001"]);
-      // await bridgeToken
-      //   .connect(admin)
-      //   .setRules(["11", "12"], ["100001", unlockTime]);
+      // await bridgeToken.connect(admin).setRules(["11"], ["100001"]);
+      await bridgeToken
+        .connect(admin)
+        .setRules(["11", "1", "12"], ["100001", "0", unlockTime]);
       console.log("BridgeToken Rules: ", await bridgeToken.rules());
       console.log("Timestamp: ", await time.latest());
 
@@ -541,6 +557,8 @@ describe("SwapCatUpgradeable", function () {
         [1]
       );
 
+      await time.increaseTo(unlockTime);
+      console.log("Timestamp: ", await time.latest());
       // Transfer USDC to user1, bridgeToken to user2
       await bridgeToken.transfer(user1.address, BigNumber.from("100000000000"));
       await usdcTokenTest.transfer(
@@ -584,23 +602,20 @@ describe("SwapCatUpgradeable", function () {
         await usdcTokenTest.balanceOf(user1.address)
       );
 
-      await time.increaseTo(unlockTime);
-      console.log("Timestamp: ", await time.latest());
-
       // TODO: deploy bridge token to test 3 rules
       // Test buy function
-      // await expect(
-      //   swapCatUpgradeable
-      //     .connect(user1)
-      //     .buy(
-      //       BigNumber.from(0),
-      //       BigNumber.from("10000000000000000"),
-      //       BigNumber.from("60000000")
-      //     )
-      // )
-      //   .to.emit(swapCatUpgradeable, "OfferAccepted")
-      //   .withArgs(0, user1.address, BigNumber.from("10000000000000000"));
-      // console.log(await bridgeToken.balanceOf(user1.address));
+      await expect(
+        swapCatUpgradeable
+          .connect(user1)
+          .buy(
+            BigNumber.from(0),
+            BigNumber.from("10000000000000000"),
+            BigNumber.from("60000000")
+          )
+      )
+        .to.emit(swapCatUpgradeable, "OfferAccepted")
+        .withArgs(0, user1.address, BigNumber.from("10000000000000000"));
+      console.log(await bridgeToken.balanceOf(user1.address));
     });
   });
 
@@ -717,6 +732,18 @@ describe("SwapCatUpgradeable", function () {
       await swapCatUpgradeableV2.deployed();
     });
 
-    it("Should not be able to upgrade by others", async function () {});
+    it("Should not be able to upgrade by others", async function () {
+      // const { swapCatUpgradeable, moderator } = await loadFixture(makeSuite);
+      // const SwapCatUpgradeableV2 = await ethers.getContractFactory(
+      //   "SwapCatUpgradeableV2"
+      // );
+      // const swapCatUpgradeableV2 = (await upgrades.upgradeProxy(
+      //   swapCatUpgradeable.address,
+      //   SwapCatUpgradeableV2,
+      //   { kind: "uups" }
+      // )) as SwapCatUpgradeableV2;
+      // await swapCatUpgradeableV2.deployed();
+      // });
+    });
   });
 });
