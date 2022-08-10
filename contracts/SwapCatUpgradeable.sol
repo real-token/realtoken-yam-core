@@ -275,7 +275,7 @@ contract SwapCatUpgradeable is
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
-  function saveLostTokens(address token) external override onlyModerator {
+  function saveLostTokens(address token) external override {
     require(
       msg.sender == moderator || msg.sender == admin,
       "only admin or moderator can move lost tokens"

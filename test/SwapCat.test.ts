@@ -9,6 +9,7 @@ import { BridgeToken } from "../typechain/BridgeToken";
 import { Processor } from "../typechain/Processor";
 import { RuleEngine } from "../typechain/RuleEngine";
 import { ComplianceRegistry } from "../typechain/ComplianceRegistry";
+import { UserFreezeRule } from "../typechain/UserFreezeRule";
 import { VestingRule } from "../typechain/VestingRule";
 import { UserAttributeValidToRule } from "../typechain/UserAttributeValidToRule";
 import { SwapCatUpgradeable } from "../typechain/SwapCatUpgradeable";
@@ -19,7 +20,6 @@ describe("SwapCatUpgradeable", function () {
     const [admin, moderator, user1, user2]: SignerWithAddress[] =
       await ethers.getSigners();
     const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-    const RealTokenTest = await ethers.getContractFactory("RealTokenTest");
     const USDCTokenTest = await ethers.getContractFactory("USDCTokenTest");
     const RuleEngineFactory = await ethers.getContractFactory("RuleEngine");
     const ProcessorFactory = await ethers.getContractFactory("Processor");
@@ -38,7 +38,6 @@ describe("SwapCatUpgradeable", function () {
       "SwapCatUpgradeable"
     );
 
-    const realTokenTest = await RealTokenTest.deploy();
     const usdcTokenTest = await USDCTokenTest.deploy();
 
     // Deploy ComplianceRegistry contract: owner = admin
@@ -56,7 +55,7 @@ describe("SwapCatUpgradeable", function () {
     // Deploy UserFreezeRule contract
     const userFreezeRule = (await upgrades.deployProxy(UserFreezeRuleFactory, [
       complianceRegistry.address,
-    ])) as UserAttributeValidToRule;
+    ])) as UserFreezeRule;
 
     // Deploy VestingRule contract
     const vestingRule = (await upgrades.deployProxy(VestingRuleFactory, [
@@ -131,8 +130,10 @@ describe("SwapCatUpgradeable", function () {
       admin.address,
       BigNumber.from("1000000000000000000000000")
     );
-    console.log("Admin balance ", await bridgeToken.balanceOf(admin.address));
-    console.log("Rule length ", await ruleEngine.ruleLength());
+    console.log(
+      "BTT Admin balance ",
+      await bridgeToken.balanceOf(admin.address)
+    );
 
     // Whitelist admin, user1, user2
     await complianceRegistry.registerUser(
@@ -163,13 +164,12 @@ describe("SwapCatUpgradeable", function () {
     )) as SwapCatUpgradeable;
 
     return {
-      realTokenTest,
       usdcTokenTest,
+      bridgeToken,
       swapCatUpgradeable,
       complianceRegistry,
       ruleEngine,
       processor,
-      bridgeToken,
       unlockTime,
       admin,
       moderator,
@@ -180,12 +180,11 @@ describe("SwapCatUpgradeable", function () {
 
   async function makeSuiteWhitelist() {
     const {
-      realTokenTest,
       usdcTokenTest,
+      bridgeToken,
       swapCatUpgradeable,
       complianceRegistry,
       ruleEngine,
-      bridgeToken,
       unlockTime,
       admin,
       moderator,
@@ -196,24 +195,20 @@ describe("SwapCatUpgradeable", function () {
     const amount2 = BigNumber.from("1000000000"); // 1000 USDC
     await swapCatUpgradeable
       .connect(admin)
-      .toggleWhitelist(realTokenTest.address);
-    await swapCatUpgradeable
-      .connect(admin)
       .toggleWhitelist(usdcTokenTest.address);
     await swapCatUpgradeable
       .connect(admin)
       .toggleWhitelist(bridgeToken.address);
 
-    await realTokenTest.transfer(user1.address, amount1); // Send 1000 RTT to user1
+    await bridgeToken.transfer(user1.address, amount1); // Send 1000 RTT to user1
     await usdcTokenTest.transfer(user2.address, amount2); // Send 1000 USDC to user2
 
     return {
-      realTokenTest,
       usdcTokenTest,
+      bridgeToken,
       swapCatUpgradeable,
       complianceRegistry,
       ruleEngine,
-      bridgeToken,
       unlockTime,
       admin,
       moderator,
@@ -224,7 +219,6 @@ describe("SwapCatUpgradeable", function () {
 
   async function makeSuiteWhitelistAndCreateOffer() {
     const {
-      realTokenTest,
       usdcTokenTest,
       swapCatUpgradeable,
       complianceRegistry,
@@ -239,14 +233,14 @@ describe("SwapCatUpgradeable", function () {
     // Create offer: offerId = 0
     await swapCatUpgradeable
       .connect(user1)
-      .createOffer(realTokenTest.address, usdcTokenTest.address, 50000000, 0);
+      .createOffer(bridgeToken.address, usdcTokenTest.address, 50000000, 0);
 
     // Create offer: offerId = 1
     await swapCatUpgradeable
       .connect(user1)
-      .createOffer(realTokenTest.address, usdcTokenTest.address, 55000000, 0);
+      .createOffer(bridgeToken.address, usdcTokenTest.address, 55000000, 0);
 
-    await realTokenTest
+    await bridgeToken
       .connect(user1)
       .approve(
         swapCatUpgradeable.address,
@@ -257,12 +251,11 @@ describe("SwapCatUpgradeable", function () {
       .approve(swapCatUpgradeable.address, BigNumber.from("10000000"));
 
     return {
-      realTokenTest,
+      bridgeToken,
       usdcTokenTest,
       swapCatUpgradeable,
       complianceRegistry,
       ruleEngine,
-      bridgeToken,
       unlockTime,
       admin,
       moderator,
@@ -305,33 +298,31 @@ describe("SwapCatUpgradeable", function () {
   // Test 2: Whitelist
   describe("2. Whitelist/unWhitelist", function () {
     it("Whitelist/unWhitelist: should work with admin and emit the right event", async function () {
-      const { realTokenTest, swapCatUpgradeable } = await loadFixture(
-        makeSuite
-      );
-      await expect(swapCatUpgradeable.toggleWhitelist(realTokenTest.address))
+      const { bridgeToken, swapCatUpgradeable } = await loadFixture(makeSuite);
+      await expect(swapCatUpgradeable.toggleWhitelist(bridgeToken.address))
         .to.emit(swapCatUpgradeable, "TokenWhitelisted")
-        .withArgs(realTokenTest.address);
+        .withArgs(bridgeToken.address);
 
       expect(
-        await swapCatUpgradeable.isWhitelisted(realTokenTest.address)
+        await swapCatUpgradeable.isWhitelisted(bridgeToken.address)
       ).to.equal(true);
 
-      await expect(swapCatUpgradeable.toggleWhitelist(realTokenTest.address))
+      await expect(swapCatUpgradeable.toggleWhitelist(bridgeToken.address))
         .to.emit(swapCatUpgradeable, "TokenUnWhitelisted")
-        .withArgs(realTokenTest.address);
+        .withArgs(bridgeToken.address);
 
       expect(
-        await swapCatUpgradeable.isWhitelisted(realTokenTest.address)
+        await swapCatUpgradeable.isWhitelisted(bridgeToken.address)
       ).to.equal(false);
     });
 
     it("Whitelist/unWhitelist: should not work with other address", async function () {
-      const { realTokenTest, swapCatUpgradeable, user1 } = await loadFixture(
+      const { bridgeToken, swapCatUpgradeable, user1 } = await loadFixture(
         makeSuite
       );
 
       await expect(
-        swapCatUpgradeable.connect(user1).toggleWhitelist(realTokenTest.address)
+        swapCatUpgradeable.connect(user1).toggleWhitelist(bridgeToken.address)
       ).to.revertedWith(
         `AccessControl: account ${user1.address.toLowerCase()} is missing role ${await swapCatUpgradeable.DEFAULT_ADMIN_ROLE()}`
       );
@@ -341,12 +332,12 @@ describe("SwapCatUpgradeable", function () {
   // Test 3: Create, modify, delete offer
   describe("3. Create/Modify/Delete Offer", function () {
     it("Create Offer: should create an offer when both tokens are whitelisted", async function () {
-      const { realTokenTest, usdcTokenTest, swapCatUpgradeable } =
+      const { bridgeToken, usdcTokenTest, swapCatUpgradeable } =
         await loadFixture(makeSuite);
 
-      await expect(swapCatUpgradeable.toggleWhitelist(realTokenTest.address))
+      await expect(swapCatUpgradeable.toggleWhitelist(bridgeToken.address))
         .to.emit(swapCatUpgradeable, "TokenWhitelisted")
-        .withArgs(realTokenTest.address);
+        .withArgs(bridgeToken.address);
 
       await expect(swapCatUpgradeable.toggleWhitelist(usdcTokenTest.address))
         .to.emit(swapCatUpgradeable, "TokenWhitelisted")
@@ -354,34 +345,34 @@ describe("SwapCatUpgradeable", function () {
 
       await expect(
         swapCatUpgradeable.createOffer(
-          realTokenTest.address,
+          bridgeToken.address,
           usdcTokenTest.address,
           10,
           0
         )
       )
         .to.emit(swapCatUpgradeable, "OfferCreated")
-        .withArgs(realTokenTest.address, usdcTokenTest.address, 10, 0);
+        .withArgs(bridgeToken.address, usdcTokenTest.address, 10, 0);
 
       await expect(
         swapCatUpgradeable.createOffer(
-          realTokenTest.address,
+          bridgeToken.address,
           usdcTokenTest.address,
           15,
           0
         )
       )
         .to.emit(swapCatUpgradeable, "OfferCreated")
-        .withArgs(realTokenTest.address, usdcTokenTest.address, 15, 1);
+        .withArgs(bridgeToken.address, usdcTokenTest.address, 15, 1);
     });
 
     it("Create Offer: should revert when the tokens are not whitelisted", async function () {
-      const { realTokenTest, usdcTokenTest, swapCatUpgradeable } =
+      const { bridgeToken, usdcTokenTest, swapCatUpgradeable } =
         await loadFixture(makeSuite);
 
       await expect(
         swapCatUpgradeable.createOffer(
-          realTokenTest.address,
+          bridgeToken.address,
           usdcTokenTest.address,
           10,
           0
@@ -390,26 +381,26 @@ describe("SwapCatUpgradeable", function () {
     });
 
     it("Modify offer: seller should be able to modify the offer", async function () {
-      const { realTokenTest, usdcTokenTest, swapCatUpgradeable, user1 } =
+      const { bridgeToken, usdcTokenTest, swapCatUpgradeable, user1 } =
         await loadFixture(makeSuiteWhitelistAndCreateOffer);
       await expect(
         swapCatUpgradeable
           .connect(user1)
-          .createOffer(realTokenTest.address, usdcTokenTest.address, 100, 1)
+          .createOffer(bridgeToken.address, usdcTokenTest.address, 100, 1)
       )
         .to.emit(swapCatUpgradeable, "OfferCreated")
-        .withArgs(realTokenTest.address, usdcTokenTest.address, 100, 1);
+        .withArgs(bridgeToken.address, usdcTokenTest.address, 100, 1);
     });
 
     it("Modify offer: non-seller should not be able to modify the offer", async function () {
-      const { realTokenTest, usdcTokenTest, swapCatUpgradeable, user2 } =
+      const { bridgeToken, usdcTokenTest, swapCatUpgradeable, user2 } =
         await loadFixture(makeSuiteWhitelistAndCreateOffer);
 
       // Revert when user 2 modifies the price of the second offer, offerId = 1
       await expect(
         swapCatUpgradeable
           .connect(user2)
-          .createOffer(realTokenTest.address, usdcTokenTest.address, 20, 1)
+          .createOffer(bridgeToken.address, usdcTokenTest.address, 20, 1)
       ).to.revertedWith("only the seller can change offer");
     });
 
@@ -468,15 +459,15 @@ describe("SwapCatUpgradeable", function () {
       expect(await swapCatUpgradeable.getOfferCount()).to.equal(1);
     });
     it("Function tokenInfo: should work", async function () {
-      const { realTokenTest, usdcTokenTest, swapCatUpgradeable } =
+      const { bridgeToken, usdcTokenTest, swapCatUpgradeable } =
         await loadFixture(makeSuiteWhitelistAndCreateOffer);
 
       expect(
-        await swapCatUpgradeable.tokenInfo(realTokenTest.address)
+        await swapCatUpgradeable.tokenInfo(bridgeToken.address)
       ).to.deep.equal([
-        BigNumber.from(await realTokenTest.decimals()),
-        await realTokenTest.symbol(),
-        await realTokenTest.name(),
+        BigNumber.from(await bridgeToken.decimals()),
+        await bridgeToken.symbol(),
+        await bridgeToken.name(),
       ]);
 
       expect(
@@ -489,12 +480,12 @@ describe("SwapCatUpgradeable", function () {
     });
 
     it("Function showOffer: should work", async function () {
-      const { realTokenTest, usdcTokenTest, swapCatUpgradeable, user1 } =
+      const { bridgeToken, usdcTokenTest, swapCatUpgradeable, user1 } =
         await loadFixture(makeSuiteWhitelistAndCreateOffer);
 
       // Test function: showOffer (offerToken buyerToken, sellerAddress, price)
       expect((await swapCatUpgradeable.showOffer(0)).slice(0, 4)).to.eql([
-        realTokenTest.address,
+        bridgeToken.address,
         usdcTokenTest.address,
         user1.address,
         BigNumber.from("50000000"),
@@ -503,26 +494,26 @@ describe("SwapCatUpgradeable", function () {
       // Test function: showOffer (availablebalance)
       // When allowance is inferior than user1 balance, the availablebalance is equal to the allowance
       expect((await swapCatUpgradeable.showOffer(0))[4]).to.equal(
-        await realTokenTest.allowance(user1.address, swapCatUpgradeable.address)
+        await bridgeToken.allowance(user1.address, swapCatUpgradeable.address)
       );
       // When allowance is inferior than user1 balance
       await expect(
-        realTokenTest
+        bridgeToken
           .connect(user1)
           .approve(
             swapCatUpgradeable.address,
-            BigNumber.from(await realTokenTest.balanceOf(user1.address)).add(1)
+            BigNumber.from(await bridgeToken.balanceOf(user1.address)).add(1)
           )
       )
-        .to.emit(realTokenTest, "Approval")
+        .to.emit(bridgeToken, "Approval")
         .withArgs(
           user1.address,
           swapCatUpgradeable.address,
-          BigNumber.from(await realTokenTest.balanceOf(user1.address)).add(1)
+          BigNumber.from(await bridgeToken.balanceOf(user1.address)).add(1)
         );
 
       expect((await swapCatUpgradeable.showOffer(0))[4]).to.equal(
-        await realTokenTest.balanceOf(user1.address)
+        await bridgeToken.balanceOf(user1.address)
       );
     });
 
@@ -638,42 +629,82 @@ describe("SwapCatUpgradeable", function () {
 
   describe("6. Save lost tokens", function () {
     it("should allow withdrawing by the moderator", async function () {
-      const { realTokenTest, swapCatUpgradeable, moderator } =
-        await loadFixture(makeSuite);
+      const {
+        bridgeToken,
+        swapCatUpgradeable,
+        complianceRegistry,
+        unlockTime,
+        admin,
+        moderator,
+      } = await loadFixture(makeSuite);
 
-      await realTokenTest.transfer(swapCatUpgradeable.address, 200);
-      expect(
-        await realTokenTest.balanceOf(swapCatUpgradeable.address)
-      ).to.equal(200);
+      await complianceRegistry.registerUser(
+        swapCatUpgradeable.address,
+        [BigNumber.from("100001")],
+        [1]
+      );
+      await complianceRegistry.registerUser(
+        moderator.address,
+        [BigNumber.from("100001")],
+        [1]
+      );
+
+      // Admin-owner can transfer before unlockTime
+      await bridgeToken.transfer(swapCatUpgradeable.address, 200);
+      expect(await bridgeToken.balanceOf(swapCatUpgradeable.address)).to.equal(
+        200
+      );
+
+      // Manipulate time to unlockTime
+      await time.increaseTo(unlockTime);
 
       // Moderator can withdraw tokens
       await expect(
         swapCatUpgradeable
           .connect(moderator)
-          .saveLostTokens(realTokenTest.address)
+          .saveLostTokens(bridgeToken.address)
       )
-        .to.emit(realTokenTest, "Transfer")
+        .to.emit(bridgeToken, "Transfer")
         .withArgs(
           swapCatUpgradeable.address,
           moderator.address,
-          await realTokenTest.balanceOf(swapCatUpgradeable.address)
+          await bridgeToken.balanceOf(swapCatUpgradeable.address)
         );
-      expect(await realTokenTest.balanceOf(moderator.address)).to.equal(200);
+      expect(await bridgeToken.balanceOf(swapCatUpgradeable.address)).to.equal(
+        0
+      );
+      expect(await bridgeToken.balanceOf(moderator.address)).to.equal(200);
+
+      // Transfer token to the contract a second time
+      await bridgeToken.transfer(swapCatUpgradeable.address, 300);
+      expect(await bridgeToken.balanceOf(swapCatUpgradeable.address)).to.equal(
+        300
+      );
+      // Moderator can withdraw tokens
+      await expect(
+        swapCatUpgradeable.connect(admin).saveLostTokens(bridgeToken.address)
+      )
+        .to.emit(bridgeToken, "Transfer")
+        .withArgs(
+          swapCatUpgradeable.address,
+          moderator.address,
+          await bridgeToken.balanceOf(swapCatUpgradeable.address)
+        );
+      expect(await bridgeToken.balanceOf(swapCatUpgradeable.address)).to.equal(
+        0
+      );
+      expect(await bridgeToken.balanceOf(moderator.address)).to.equal(500);
     });
 
-    it("should not allow withdrawing by non-moderator", async function () {
-      const { realTokenTest, swapCatUpgradeable, admin, user1 } =
-        await loadFixture(makeSuite);
-
-      // Admin can not withdraw tokens
-      await expect(
-        swapCatUpgradeable.connect(admin).saveLostTokens(realTokenTest.address)
-      ).to.revertedWith(`Caller is not moderator`);
+    it("should not allow withdrawing by non-admin/moderator", async function () {
+      const { bridgeToken, swapCatUpgradeable, user1 } = await loadFixture(
+        makeSuite
+      );
 
       // User can not withdraw tokens
       await expect(
-        swapCatUpgradeable.connect(user1).saveLostTokens(realTokenTest.address)
-      ).to.revertedWith(`Caller is not moderator`);
+        swapCatUpgradeable.connect(user1).saveLostTokens(bridgeToken.address)
+      ).to.revertedWith(`only admin or moderator can move lost tokens`);
     });
 
     it("Should not be able to transfer ethers to the contract", async function () {
