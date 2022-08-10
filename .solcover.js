@@ -32,6 +32,7 @@ module.exports = {
     "test/bridge-token/rules/abstract/AbstractRule.sol",
     "test/bridge-token/rules/UserAttributeValidToRule.sol",
     "test/bridge-token/rules/VestingRule.sol",
+    "test/bridge-token/rules/UserFreezeRule.sol",
     "test/bridge-token/token/abstract/BridgeERC20.sol",
     "test/bridge-token/token/abstract/SeizableBridgeERC20.sol",
     "test/bridge-token/token/BridgeToken.sol",

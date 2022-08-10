@@ -101,6 +101,10 @@ contract SwapCatUpgradeable is
     onlyWhitelistedToken(_buyerToken)
     returns (uint256)
   {
+    // require(
+    //   _isTransferValid(_offerToken, msg.sender, msg.sender, 1),
+    //   "Seller can not transfer tokens"
+    // );
     // if no offerId is given a new offer is made, if offerId is given only the offers price is changed if owner matches
     if (_offerId == 0) {
       _offerId = offerCount;
@@ -226,7 +230,12 @@ contract SwapCatUpgradeable is
 
     // Check if the transfer is valid
     require(
-      _isTransferValid(offerToken[_offerId], seller[_offerId], msg.sender),
+      _isTransferValid(
+        offerToken[_offerId],
+        seller[_offerId],
+        msg.sender,
+        _offerTokenAmount
+      ),
       "transfer is not valid"
     );
     // calculate the price of the order
@@ -285,52 +294,29 @@ contract SwapCatUpgradeable is
     moderator = newModerator;
   }
 
+  /**
+   * @notice Returns true if the transfer is valid, false otherwise
+   * @param _token The token address
+   * @param _from The sender address
+   * @param _to The receiver address
+   * @param _amount The amount of tokens to be transferred
+   * @return Whether the transfer is valid
+   **/
   function _isTransferValid(
     address _token,
     address _from,
-    address _to
+    address _to,
+    uint256 _amount
   ) private view returns (bool) {
-    // Rules [11, 1, 111]
-
-    // Get to see whether the token is frozen (rule 1)
-    (, uint256 isFrozen) = (IBridgeToken(_token).rule(1));
-    // Check rule index 1 (User Freeze Rule)
-    require(isFrozen == 0, "Transfer is frozen");
-
-    // Get token vesting time (rule 111)
-    (, uint256 vestingTimestamp) = (IBridgeToken(_token).rule(2));
-    // Check rule index 111 (Vesting Rule): the current timestamp must be greater than the vesting timestamp
-    require(block.timestamp > vestingTimestamp, "Vesting time is not finished");
-
-    // Get to see if the seller and the buyer are whitelisted for the token
-    // Check if the user is whitelisted for the token
-    (, uint256 tokenId) = (IBridgeToken(_token).rule(0));
-
-    // Check if the seller is whitelisted for the token
-    (uint256 sellerId, address sellerTrustedIntermediary) = _complianceRegistry
-      .userId(_trustedIntermediaries, _from);
-    uint256 isSellerWhitelisted = _complianceRegistry.attribute(
-      sellerTrustedIntermediary,
-      sellerId,
-      tokenId
-    );
-
-    // Check if the buyer is whitelisted for the token
-    (uint256 buyerId, address buyerTrustedIntermediary) = _complianceRegistry
-      .userId(_trustedIntermediaries, _to);
-    uint256 isBuyerWhitelisted = _complianceRegistry.attribute(
-      buyerTrustedIntermediary,
-      buyerId,
-      tokenId
-    );
-    // Both seller and user have to be whitelisted for the token, otherwise the transfer is not valid
-    require(
-      isSellerWhitelisted != 0 && isBuyerWhitelisted != 0,
-      "User is not whitelisted"
+    // Generalize verifying rules (for example: 11, 1, 12)
+    (bool isTransferValid, , ) = IBridgeToken(_token).canTransfer(
+      _from,
+      _to,
+      _amount
     );
 
     // If everything is fine, return true
-    return true;
+    return isTransferValid;
   }
 
   /**
@@ -338,5 +324,5 @@ contract SwapCatUpgradeable is
    * variables without shifting down storage in the inheritance chain.
    * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
    */
-  uint256[43] private __gap;
+  uint256[42] private __gap;
 }

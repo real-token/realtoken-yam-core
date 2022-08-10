@@ -5,9 +5,11 @@ import { ethers, upgrades } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
+import { BridgeToken } from "../typechain/BridgeToken";
 import { Processor } from "../typechain/Processor";
 import { RuleEngine } from "../typechain/RuleEngine";
 import { ComplianceRegistry } from "../typechain/ComplianceRegistry";
+import { VestingRule } from "../typechain/VestingRule";
 import { UserAttributeValidToRule } from "../typechain/UserAttributeValidToRule";
 import { SwapCatUpgradeable } from "../typechain/SwapCatUpgradeable";
 import { SwapCatUpgradeableV2 } from "../typechain/SwapCatUpgradeableV2";
@@ -52,14 +54,14 @@ describe("SwapCatUpgradeable", function () {
     )) as UserAttributeValidToRule;
 
     // Deploy UserFreezeRule contract
-    const userFreezeRule = await upgrades.deployProxy(UserFreezeRuleFactory, [
+    const userFreezeRule = (await upgrades.deployProxy(UserFreezeRuleFactory, [
       complianceRegistry.address,
-    ]);
+    ])) as UserAttributeValidToRule;
 
     // Deploy VestingRule contract
-    const vestingRule = await upgrades.deployProxy(VestingRuleFactory, [
+    const vestingRule = (await upgrades.deployProxy(VestingRuleFactory, [
       complianceRegistry.address,
-    ]);
+    ])) as VestingRule;
 
     // Deploy RuleEngine contract: owner = admin
     const ruleEngine = (await upgrades.deployProxy(RuleEngineFactory, [
@@ -91,7 +93,7 @@ describe("SwapCatUpgradeable", function () {
     )) as Processor;
 
     // Deploy BridgeToken contract: owner = admin
-    const bridgeToken = await upgrades.deployProxy(
+    const bridgeToken = (await upgrades.deployProxy(
       BridgeTokenFactory,
       [
         admin.address, // owner address
@@ -105,6 +107,48 @@ describe("SwapCatUpgradeable", function () {
         initializer:
           "initialize(address owner, address processor, string name, string symbol, uint8 decimals, address[] trustedIntermediaries)",
       }
+    )) as BridgeToken;
+
+    // Set rules in bridgeToken
+    // Rule 11: tokenId
+    // Rule 1: isFrozen
+    // Rule 12: VestingTimestamp
+    // Source: https://github.com/MtPelerin/bridge-v2/blob/master/docs/RuleEngine.md
+    const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
+    const unlockTime = (await time.latest()) + ONE_YEAR_IN_SECS;
+    console.log("Unlock timestamp: ", unlockTime);
+
+    await bridgeToken
+      .connect(admin)
+      .setRules(["11", "1", "12"], ["100001", "0", unlockTime]);
+    console.log("BridgeToken Rules: ", await bridgeToken.rules());
+
+    // Set roles: administrator, supplier
+    await bridgeToken.addAdministrator(admin.address);
+    await bridgeToken.addSupplier(admin.address);
+    // Mint 1000000 BTT to admin address
+    await bridgeToken.mint(
+      admin.address,
+      BigNumber.from("1000000000000000000000000")
+    );
+    console.log("Admin balance ", await bridgeToken.balanceOf(admin.address));
+    console.log("Rule length ", await ruleEngine.ruleLength());
+
+    // Whitelist admin, user1, user2
+    await complianceRegistry.registerUser(
+      admin.address,
+      [BigNumber.from("100001")],
+      [1]
+    );
+    await complianceRegistry.registerUser(
+      user1.address,
+      [BigNumber.from("100001")],
+      [1]
+    );
+    await complianceRegistry.registerUser(
+      user2.address,
+      [BigNumber.from("100001")],
+      [1]
     );
 
     // Deploy SwapCatUpgradeable contract
@@ -126,6 +170,7 @@ describe("SwapCatUpgradeable", function () {
       ruleEngine,
       processor,
       bridgeToken,
+      unlockTime,
       admin,
       moderator,
       user1,
@@ -141,6 +186,7 @@ describe("SwapCatUpgradeable", function () {
       complianceRegistry,
       ruleEngine,
       bridgeToken,
+      unlockTime,
       admin,
       moderator,
       user1,
@@ -168,6 +214,7 @@ describe("SwapCatUpgradeable", function () {
       complianceRegistry,
       ruleEngine,
       bridgeToken,
+      unlockTime,
       admin,
       moderator,
       user1,
@@ -183,6 +230,7 @@ describe("SwapCatUpgradeable", function () {
       complianceRegistry,
       ruleEngine,
       bridgeToken,
+      unlockTime,
       admin,
       moderator,
       user1,
@@ -215,6 +263,7 @@ describe("SwapCatUpgradeable", function () {
       complianceRegistry,
       ruleEngine,
       bridgeToken,
+      unlockTime,
       admin,
       moderator,
       user1,
@@ -506,61 +555,14 @@ describe("SwapCatUpgradeable", function () {
       const {
         usdcTokenTest,
         swapCatUpgradeable,
-        ruleEngine,
-        complianceRegistry,
         bridgeToken,
+        unlockTime,
         admin,
         user1,
         user2,
       } = await loadFixture(makeSuiteWhitelist);
 
-      // Set rules in bridgeToken
-      // Rule 11: tokenId
-      // Rule 1: isFrozen
-      // Rule 12: VestingTimestamp
-      // Source: https://github.com/MtPelerin/bridge-v2/blob/master/docs/RuleEngine.md
-      const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
-      const unlockTime = (await time.latest()) + ONE_YEAR_IN_SECS;
-      console.log("Unlock timestamp: ", unlockTime);
-
-      // await bridgeToken.connect(admin).setRules(["11"], ["100001"]);
-      await bridgeToken
-        .connect(admin)
-        .setRules(["11", "1", "12"], ["100001", "0", unlockTime]);
-      console.log("BridgeToken Rules: ", await bridgeToken.rules());
-      console.log("Timestamp: ", await time.latest());
-
-      // Set roles: administrator, supplier
-      await bridgeToken.addAdministrator(admin.address);
-      await bridgeToken.addSupplier(admin.address);
-      await bridgeToken.mint(
-        admin.address,
-        BigNumber.from("1000000000000000000000000")
-      );
-      console.log("Admin balance ", await bridgeToken.balanceOf(admin.address));
-      console.log("Rule length ", await ruleEngine.ruleLength());
-
-      // Whitelist user
-      await complianceRegistry.registerUser(
-        admin.address,
-        [BigNumber.from("100001")],
-        [1]
-      );
-      await complianceRegistry.registerUser(
-        user1.address,
-        [BigNumber.from("100001")],
-        [1]
-      );
-      await complianceRegistry.registerUser(
-        user2.address,
-        [BigNumber.from("100001")],
-        [1]
-      );
-
-      await time.increaseTo(unlockTime);
-      console.log("Timestamp: ", await time.latest());
-      // Transfer USDC to user1, bridgeToken to user2
-      await bridgeToken.transfer(user1.address, BigNumber.from("100000000000"));
+      // console.log(await )
       await usdcTokenTest.transfer(
         user1.address,
         BigNumber.from("100000000000")
@@ -616,6 +618,21 @@ describe("SwapCatUpgradeable", function () {
         .to.emit(swapCatUpgradeable, "OfferAccepted")
         .withArgs(0, user1.address, BigNumber.from("10000000000000000"));
       console.log(await bridgeToken.balanceOf(user1.address));
+
+      // Admin sends 1000 BTT to user1
+      await bridgeToken.transfer(
+        user1.address,
+        BigNumber.from("1000000000000000000000")
+      );
+
+      await swapCatUpgradeable
+        .connect(user1)
+        .createOffer(bridgeToken.address, usdcTokenTest.address, 60000000, 0);
+
+      // await time.increaseTo(unlockTime);
+      console.log("Transaction timestamp: ", await time.latest());
+      console.log("Unlock timestamp: ", unlockTime);
+      // Transfer USDC to user1, bridgeToken to user2
     });
   });
 

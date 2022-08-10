@@ -6,11 +6,24 @@ interface IBridgeToken {
 
   function rule(uint256 ruleId) external view returns (uint256, uint256);
 
+  function owner() external view returns (address);
+
   function transferFrom(
     address _from,
     address _to,
     uint256 _value
   ) external returns (bool);
 
-  function owner() external view returns (address);
+  function canTransfer(
+    address _from,
+    address _to,
+    uint256 _amount
+  )
+    external
+    view
+    returns (
+      bool,
+      uint256,
+      uint256
+    );
 }
