@@ -155,12 +155,7 @@ describe("SwapCatUpgradeable", function () {
     // Deploy SwapCatUpgradeable contract
     const swapCatUpgradeable = (await upgrades.deployProxy(
       SwapCatUpgradeableFactory,
-      [
-        admin.address,
-        moderator.address,
-        complianceRegistry.address,
-        admin.address, // trustedIntermediary = admin
-      ]
+      [admin.address, moderator.address]
     )) as SwapCatUpgradeable;
 
     return {

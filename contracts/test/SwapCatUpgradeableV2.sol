@@ -21,19 +21,11 @@ contract SwapCatUpgradeableV2 is
   uint256 internal offerCount;
   address public admin; // admin address
   address public moderator; // moderator address, can move stuck funds
-  IComplianceRegistry private _complianceRegistry;
-  address private _trustedIntermediary;
-  address[] private _trustedIntermediaries;
 
   /// @notice the initialize function to execute only once during the contract deployment
   /// @param admin_ address of the default admin account: whitelist tokens, delete frozen offers, upgrade the contract
   /// @param moderator_ address of the admin with unique responsibles
-  function initialize(
-    address admin_,
-    address moderator_,
-    IComplianceRegistry complianceRegistry_,
-    address trustedIntermediary_
-  ) external initializer {
+  function initialize(address admin_, address moderator_) external initializer {
     __AccessControl_init();
     __UUPSUpgradeable_init();
 
@@ -41,10 +33,6 @@ contract SwapCatUpgradeableV2 is
     _grantRole(UPGRADER_ROLE, admin_);
     admin = admin_;
     moderator = moderator_;
-
-    _complianceRegistry = complianceRegistry_;
-    _trustedIntermediary = trustedIntermediary_;
-    _trustedIntermediaries.push(trustedIntermediary_);
   }
 
   /// @notice The admin (with upgrader role) uses this function to update the contract
@@ -101,6 +89,10 @@ contract SwapCatUpgradeableV2 is
     onlyWhitelistedToken(_buyerToken)
     returns (uint256)
   {
+    // require(
+    //   _isTransferValid(_offerToken, msg.sender, msg.sender, 1),
+    //   "Seller can not transfer tokens"
+    // );
     // if no offerId is given a new offer is made, if offerId is given only the offers price is changed if owner matches
     if (_offerId == 0) {
       _offerId = offerCount;
@@ -226,7 +218,12 @@ contract SwapCatUpgradeableV2 is
 
     // Check if the transfer is valid
     require(
-      _isTransferValid(offerToken[_offerId], seller[_offerId], msg.sender),
+      _isTransferValid(
+        offerToken[_offerId],
+        seller[_offerId],
+        msg.sender,
+        _offerTokenAmount
+      ),
       "transfer is not valid"
     );
     // calculate the price of the order
@@ -266,7 +263,7 @@ contract SwapCatUpgradeableV2 is
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
-  function saveLostTokens(address token) external override onlyModerator {
+  function saveLostTokens(address token) external override {
     require(
       msg.sender == moderator || msg.sender == admin,
       "only admin or moderator can move lost tokens"
@@ -285,52 +282,29 @@ contract SwapCatUpgradeableV2 is
     moderator = newModerator;
   }
 
+  /**
+   * @notice Returns true if the transfer is valid, false otherwise
+   * @param _token The token address
+   * @param _from The sender address
+   * @param _to The receiver address
+   * @param _amount The amount of tokens to be transferred
+   * @return Whether the transfer is valid
+   **/
   function _isTransferValid(
     address _token,
     address _from,
-    address _to
+    address _to,
+    uint256 _amount
   ) private view returns (bool) {
-    // Rules [11, 1, 111]
-
-    // Get to see whether the token is frozen (rule 1)
-    (, uint256 isFrozen) = (IBridgeToken(_token).rule(1));
-    // Check rule index 1 (User Freeze Rule)
-    require(isFrozen == 0, "Transfer is frozen");
-
-    // Get token vesting time (rule 111)
-    (, uint256 vestingTimestamp) = (IBridgeToken(_token).rule(2));
-    // Check rule index 111 (Vesting Rule): the current timestamp must be greater than the vesting timestamp
-    require(block.timestamp > vestingTimestamp, "Vesting time is not finished");
-
-    // Get to see if the seller and the buyer are whitelisted for the token
-    // Check if the user is whitelisted for the token
-    (, uint256 tokenId) = (IBridgeToken(_token).rule(0));
-
-    // Check if the seller is whitelisted for the token
-    (uint256 sellerId, address sellerTrustedIntermediary) = _complianceRegistry
-      .userId(_trustedIntermediaries, _from);
-    uint256 isSellerWhitelisted = _complianceRegistry.attribute(
-      sellerTrustedIntermediary,
-      sellerId,
-      tokenId
-    );
-
-    // Check if the buyer is whitelisted for the token
-    (uint256 buyerId, address buyerTrustedIntermediary) = _complianceRegistry
-      .userId(_trustedIntermediaries, _to);
-    uint256 isBuyerWhitelisted = _complianceRegistry.attribute(
-      buyerTrustedIntermediary,
-      buyerId,
-      tokenId
-    );
-    // Both seller and user have to be whitelisted for the token, otherwise the transfer is not valid
-    require(
-      isSellerWhitelisted != 0 && isBuyerWhitelisted != 0,
-      "User is not whitelisted"
+    // Generalize verifying rules (for example: 11, 1, 12)
+    (bool isTransferValid, , ) = IBridgeToken(_token).canTransfer(
+      _from,
+      _to,
+      _amount
     );
 
     // If everything is fine, return true
-    return true;
+    return isTransferValid;
   }
 
   /**

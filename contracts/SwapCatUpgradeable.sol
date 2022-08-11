@@ -21,19 +21,11 @@ contract SwapCatUpgradeable is
   uint256 internal offerCount;
   address public admin; // admin address
   address public moderator; // moderator address, can move stuck funds
-  IComplianceRegistry private _complianceRegistry;
-  address private _trustedIntermediary;
-  address[] private _trustedIntermediaries;
 
   /// @notice the initialize function to execute only once during the contract deployment
   /// @param admin_ address of the default admin account: whitelist tokens, delete frozen offers, upgrade the contract
   /// @param moderator_ address of the admin with unique responsibles
-  function initialize(
-    address admin_,
-    address moderator_,
-    IComplianceRegistry complianceRegistry_,
-    address trustedIntermediary_
-  ) external initializer {
+  function initialize(address admin_, address moderator_) external initializer {
     __AccessControl_init();
     __UUPSUpgradeable_init();
 
@@ -41,10 +33,6 @@ contract SwapCatUpgradeable is
     _grantRole(UPGRADER_ROLE, admin_);
     admin = admin_;
     moderator = moderator_;
-
-    _complianceRegistry = complianceRegistry_;
-    _trustedIntermediary = trustedIntermediary_;
-    _trustedIntermediaries.push(trustedIntermediary_);
   }
 
   /// @notice The admin (with upgrader role) uses this function to update the contract
