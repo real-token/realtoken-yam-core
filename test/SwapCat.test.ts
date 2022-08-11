@@ -186,7 +186,7 @@ describe("SwapCatUpgradeable", function () {
       user1,
       user2,
     } = await loadFixture(makeSuite);
-    const amount1 = BigNumber.from("1000000000000000000000"); // 1000 RTT
+    const amount1 = BigNumber.from("1000000000000000000000"); // 1000 BTT
     const amount2 = BigNumber.from("1000000000"); // 1000 USDC
     await swapCatUpgradeable
       .connect(admin)
@@ -537,6 +537,7 @@ describe("SwapCatUpgradeable", function () {
         swapCatUpgradeable.connect(user2).buy(1, 1000000000000000, 50000000) // price was 55000000
       ).to.revertedWith("offer price wrong");
     });
+
     it("Function buy: should work", async function () {
       const {
         usdcTokenTest,
@@ -548,20 +549,21 @@ describe("SwapCatUpgradeable", function () {
         user2,
       } = await loadFixture(makeSuiteWhitelist);
 
-      // console.log(await )
-      await usdcTokenTest.transfer(
-        user1.address,
-        BigNumber.from("100000000000")
-      );
-
-      // Whitelist bridgetoken
+      // User1 creates offer, user2 buys
+      // User1 had 1000 BTT
+      // User2 had 1000 USDC
       console.log(
-        "User1 bridgetoken balance",
+        "User1 BridgeToken balance: ",
         await bridgeToken.balanceOf(user1.address)
       );
+      console.log(
+        "User2 USDCToken balance: ",
+        await usdcTokenTest.balanceOf(user2.address)
+      );
+
       await expect(
         swapCatUpgradeable
-          .connect(admin)
+          .connect(user1)
           .createOffer(bridgeToken.address, usdcTokenTest.address, 60000000, 0)
       )
         .to.emit(swapCatUpgradeable, "OfferCreated")
@@ -569,14 +571,15 @@ describe("SwapCatUpgradeable", function () {
 
       console.log("OfferCount: ", await swapCatUpgradeable.getOfferCount());
 
+      // User 1 creates an offer
       await bridgeToken
-        .connect(admin)
+        .connect(user1)
         .approve(
           swapCatUpgradeable.address,
           BigNumber.from("1000000000000000000000")
         );
       await usdcTokenTest
-        .connect(user1)
+        .connect(user2)
         .approve(
           swapCatUpgradeable.address,
           BigNumber.from("100000000000000000000000")
@@ -590,11 +593,28 @@ describe("SwapCatUpgradeable", function () {
         await usdcTokenTest.balanceOf(user1.address)
       );
 
-      // TODO: deploy bridge token to test 3 rules
-      // Test buy function
+      // TimeLock not finished
+      console.log("User2 can not buy when timelock is not finished");
+      console.log("Time now: ", await time.latest());
+      console.log("unlockTime: ", unlockTime);
       await expect(
         swapCatUpgradeable
-          .connect(user1)
+          .connect(user2)
+          .buy(
+            BigNumber.from(0),
+            BigNumber.from("10000000000000000"),
+            BigNumber.from("60000000")
+          )
+      ).to.revertedWith("transfer is not valid");
+
+      // Increase time to unlockTime
+      await time.increaseTo(unlockTime);
+      console.log("User2 can buy when timelock is finished");
+      console.log("Time now increased 1 year to: ", await time.latest());
+      console.log("unlockTime: ", unlockTime);
+      await expect(
+        swapCatUpgradeable
+          .connect(user2)
           .buy(
             BigNumber.from(0),
             BigNumber.from("10000000000000000"),
@@ -602,23 +622,17 @@ describe("SwapCatUpgradeable", function () {
           )
       )
         .to.emit(swapCatUpgradeable, "OfferAccepted")
-        .withArgs(0, user1.address, BigNumber.from("10000000000000000"));
-      console.log(await bridgeToken.balanceOf(user1.address));
+        .withArgs(0, user2.address, BigNumber.from("10000000000000000"));
 
-      // Admin sends 1000 BTT to user1
-      await bridgeToken.transfer(
-        user1.address,
-        BigNumber.from("1000000000000000000000")
+      console.log(
+        "User1 USDCToken balance: ",
+        await usdcTokenTest.balanceOf(user2.address)
       );
 
-      await swapCatUpgradeable
-        .connect(user1)
-        .createOffer(bridgeToken.address, usdcTokenTest.address, 60000000, 0);
-
-      // await time.increaseTo(unlockTime);
-      console.log("Transaction timestamp: ", await time.latest());
-      console.log("Unlock timestamp: ", unlockTime);
-      // Transfer USDC to user1, bridgeToken to user2
+      console.log(
+        "User2 BridgeToken balance: ",
+        await bridgeToken.balanceOf(user2.address)
+      );
     });
   });
 
@@ -760,7 +774,6 @@ describe("SwapCatUpgradeable", function () {
     });
   });
 
-  // TODO Upgradeability working, uncomment when the contract is finalized
   describe("8. Upgradeability", function () {
     it("Should be able to upgrade by the upgrader admin", async function () {
       const { swapCatUpgradeable } = await loadFixture(makeSuite);
@@ -773,20 +786,6 @@ describe("SwapCatUpgradeable", function () {
         { kind: "uups" }
       )) as SwapCatUpgradeableV2;
       await swapCatUpgradeableV2.deployed();
-    });
-
-    it("Should not be able to upgrade by others", async function () {
-      // const { swapCatUpgradeable, moderator } = await loadFixture(makeSuite);
-      // const SwapCatUpgradeableV2 = await ethers.getContractFactory(
-      //   "SwapCatUpgradeableV2"
-      // );
-      // const swapCatUpgradeableV2 = (await upgrades.upgradeProxy(
-      //   swapCatUpgradeable.address,
-      //   SwapCatUpgradeableV2,
-      //   { kind: "uups" }
-      // )) as SwapCatUpgradeableV2;
-      // await swapCatUpgradeableV2.deployed();
-      // });
     });
   });
 });
