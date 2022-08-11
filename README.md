@@ -137,11 +137,11 @@ See the [open issues](https://github.com/real-token/realtoken-swapcat/issues) fo
 
 ## Coverage
 
-<img src="images/coverage.png" alt="Coverage">
-
 ```
 npx hardhat coverage
 ```
+
+<img src="images/coverage.png" alt="Coverage">
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -149,13 +149,39 @@ npx hardhat coverage
 
 ## Gas fees
 
-<img src="images/gas.png" alt="Coverage">
-
 ```
 npx hardhat test
 ```
 
+<img src="images/gas.png" alt="Coverage">
+
 <p align="right">(<a href="#top">back to top</a>)</p>
+
+<!-- USAGE EXAMPLES -->
+
+## Usage
+
+Deployed addresses on Goerli testnet:
+
+AdminProxy: 0xc7f8c34680913ee5b5839da58b2013b731a8f437
+
+AdminToken: 0xa221a6194bdaf3d6c329ab58a8d1daaf1aec4008
+
+ComplianceRegistry (trustedIntermediary): 0xf8aeaa8938a858c036ed77d2ff8bab0c12e01a56
+
+TokenOwner1: 0x518be392928df2a9f063f6d225626e210fd84992
+
+TokenOwner2: 0xf894671ecb801a6bbbe4c6eca37074c7329926c2
+
+TokenOwner3: 0x063d5bc32e62e79d982c518a8de6f65653bf9cff
+
+TokenOwner4: 0xa03d9eae4a545141eb1e6e8248eb17fdc84dcdb7
+
+Token Implemetation (logic): 0x8784219F6F6CbEDe8eee1Cf4871fbf9E424C22df
+
+RegS Token 1: 0x8e363CD1D431806A75D2E167F242D8eD5eF6E34d
+
+RegD Token 2: 0xDF3f63a3a1E86296d438156BD9029e6973dD96A7
 
 <!-- CONTRIBUTING -->
 
