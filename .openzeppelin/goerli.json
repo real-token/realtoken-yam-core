@@ -1,0 +1,170 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0x9EC2D0A68e9F49B37e77C63Bc38E58B11D345b3b",
+      "txHash": "0x1f0d13195362daf593968d2fe37ba3ecaa4585634639b5d17c3a12d54527c869",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "c5134494a3397dd17850a18da4757fc7ce7533a894041ed2000dd929632bf9db": {
+      "address": "0xDFB267850891Ea0482A9aA382003461Eb704a6a6",
+      "txHash": "0x326815789ec396d8803b6fdcfdf402214412805cfb6c0f7352eb9c1854ab1368",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:39"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:44"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:36"
+          },
+          {
+            "contract": "ERC165Upgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\utils\\introspection\\ERC165Upgradeable.sol:41"
+          },
+          {
+            "contract": "AccessControlUpgradeable",
+            "label": "_roles",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)34_storage)",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\AccessControlUpgradeable.sol:61"
+          },
+          {
+            "contract": "AccessControlUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\AccessControlUpgradeable.sol:235"
+          },
+          {
+            "contract": "ERC1967UpgradeUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\ERC1967\\ERC1967UpgradeUpgradeable.sol:211"
+          },
+          {
+            "contract": "UUPSUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\UUPSUpgradeable.sol:107"
+          },
+          {
+            "contract": "SwapCatUpgradeable",
+            "label": "price",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "src": "contracts\\SwapCatUpgradeable.sol:16"
+          },
+          {
+            "contract": "SwapCatUpgradeable",
+            "label": "offerToken",
+            "type": "t_mapping(t_uint256,t_address)",
+            "src": "contracts\\SwapCatUpgradeable.sol:17"
+          },
+          {
+            "contract": "SwapCatUpgradeable",
+            "label": "buyerToken",
+            "type": "t_mapping(t_uint256,t_address)",
+            "src": "contracts\\SwapCatUpgradeable.sol:18"
+          },
+          {
+            "contract": "SwapCatUpgradeable",
+            "label": "seller",
+            "type": "t_mapping(t_uint256,t_address)",
+            "src": "contracts\\SwapCatUpgradeable.sol:19"
+          },
+          {
+            "contract": "SwapCatUpgradeable",
+            "label": "whitelistedTokens",
+            "type": "t_mapping(t_address,t_bool)",
+            "src": "contracts\\SwapCatUpgradeable.sol:20"
+          },
+          {
+            "contract": "SwapCatUpgradeable",
+            "label": "offerCount",
+            "type": "t_uint256",
+            "src": "contracts\\SwapCatUpgradeable.sol:21"
+          },
+          {
+            "contract": "SwapCatUpgradeable",
+            "label": "admin",
+            "type": "t_address",
+            "src": "contracts\\SwapCatUpgradeable.sol:22"
+          },
+          {
+            "contract": "SwapCatUpgradeable",
+            "label": "moderator",
+            "type": "t_address",
+            "src": "contracts\\SwapCatUpgradeable.sol:23"
+          },
+          {
+            "contract": "SwapCatUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)42_storage",
+            "src": "contracts\\SwapCatUpgradeable.sol:315"
+          }
+        ],
+        "types": {
+          "t_mapping(t_uint256,t_uint256)": {
+            "label": "mapping(uint256 => uint256)"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_mapping(t_uint256,t_address)": {
+            "label": "mapping(uint256 => address)"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)"
+          },
+          "t_bool": {
+            "label": "bool"
+          },
+          "t_array(t_uint256)42_storage": {
+            "label": "uint256[42]"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)34_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_struct(RoleData)34_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "members",
+                "type": "t_mapping(t_address,t_bool)"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32"
+              }
+            ]
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          }
+        }
+      }
+    }
+  }
+}
