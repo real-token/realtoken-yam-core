@@ -1,4 +1,4 @@
-import { ethers, upgrades, hre } from "hardhat";
+import { ethers, upgrades, run } from "hardhat";
 import { BridgeToken } from "../typechain/BridgeToken";
 
 async function main() {
@@ -18,7 +18,7 @@ async function main() {
   console.log(`BridgeToken proxy address deployed: ${deployed.address}`);
 
   try {
-    await hre.run("verify:verify", {
+    await run("verify:verify", {
       address: bridgeToken.address,
       constructorArguments: [],
     });
