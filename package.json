@@ -26,7 +26,8 @@
     "proxy::bsctest": "npx hardhat run scripts/deployProxy.ts --network bsctest",
     "proxy::matic": "npx hardhat run scripts/deployProxy.ts --network matic",
     "proxy::mumbai": "npx hardhat run scripts/deployProxy.ts --network mumbai",
-    "proxy::arbitrum": "npx hardhat run scripts/deployProxy.ts --network arbitrum"
+    "proxy::arbitrum": "npx hardhat run scripts/deployProxy.ts --network arbitrum",
+    "approve::goerli": "npx hardhat run scripts/approveBridgeToken.ts --network goerli"
   },
   "author": "RealToken Technologies Inc.",
   "license": "MIT",
