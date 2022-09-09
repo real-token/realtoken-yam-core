@@ -62,16 +62,39 @@ interface ISwapCatUpgradeable {
    * @notice Creates a new offer or updates an existing offer (call this again with the changed price + offerId)
    * @param offerToken The address of the token to be sold
    * @param buyerToken The address of the token to be bought
-   * @param price The price in base units of the token to be sold
    * @param offerId The Id of the offer (0 if new offer)
-   * @return offerId The Id of the offer
+   * @param price The price in base units of the token to be sold
    **/
   function createOffer(
     address offerToken,
     address buyerToken,
+    uint256 offerId,
+    uint256 price
+  ) external;
+
+  /**
+   * @notice Creates a new offer or updates an existing offer with permit (call this again with the changed price + offerId)
+   * @param offerToken The address of the token to be sold
+   * @param buyerToken The address of the token to be bought
+   * @param offerId The Id of the offer (0 if new offer)
+   * @param price The price in base units of the token to be sold
+   * @param amount The amount to be permitted
+   * @param deadline The deadline of the permit
+   * @param v v of the signature
+   * @param r r of the signature
+   * @param s s of the signature
+   **/
+  function createOfferWithPermit(
+    address offerToken,
+    address buyerToken,
+    uint256 offerId,
     uint256 price,
-    uint256 offerId
-  ) external returns (uint256);
+    uint256 amount,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external;
 
   /**
    * @notice Deletes an existing offer, only the seller of the offer can do this
@@ -90,13 +113,35 @@ interface ISwapCatUpgradeable {
    * @notice The buyer must bring the price correctly to ensure no frontrunning / changed offer
    * @notice If the offer is changed in meantime, it will not execute
    * @param offerId The Id of the offer
-   * @param amount The amount of offer tokens
    * @param price The price in base units of the offer tokens
+   * @param amount The amount of offer tokens
    **/
   function buy(
     uint256 offerId,
+    uint256 price,
+    uint256 amount
+  ) external;
+
+  /**
+   * @notice Accepts an existing offer with permit
+   * @notice The buyer must bring the price correctly to ensure no frontrunning / changed offer
+   * @notice If the offer is changed in meantime, it will not execute
+   * @param offerId The Id of the offer
+   * @param price The price in base units of the offer tokens
+   * @param amount The amount of offer tokens
+   * @param deadline The deadline of the permit
+   * @param v v of the signature
+   * @param r r of the signature
+   * @param s s of the signature
+   **/
+  function buyWithPermit(
+    uint256 offerId,
+    uint256 price,
     uint256 amount,
-    uint256 price
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
   ) external;
 
   /**
