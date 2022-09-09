@@ -7,7 +7,10 @@ import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "hardhat/console.sol";
 
 contract USDCTokenTest is ERC20, ERC20Permit, Ownable {
-  constructor() ERC20("USDC Token", "USDC") ERC20Permit("USDC Token") {
+  constructor()
+    ERC20("USDC Token Permit", "USDCPermit")
+    ERC20Permit("USDC Token Permit")
+  {
     _mint(msg.sender, 1000000 * 10**decimals());
   }
 

@@ -193,6 +193,12 @@ SwapCat Moderator: 0x822d65085ce1D3097CdE8035C4d5A0a196955523
 
 USDCToken Test: 0x31f3bEB82969825F8d2699b9f1191A0618526773
 
+SwapCatUpgradeable Proxy (with Permit): 0xeaBE3576be937B6d2B40Bd58Da0a7e7f4FAa2632
+
+SwapCatUpgradeable Implementation (with Permit): 0x65f0A4b5e1Ca1D88A83510127ba710fC1878A755
+
+USDCToken Test (with Permit): 0x2d8aC0601b2D4c9C8b4Bd87dEE72a08fE2bC0F7f
+
 <!-- CONTRIBUTING -->
 
 ## Contributing

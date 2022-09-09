@@ -13,7 +13,7 @@ import { UserFreezeRule } from "../typechain/UserFreezeRule";
 import { VestingRule } from "../typechain/VestingRule";
 import { UserAttributeValidToRule } from "../typechain/UserAttributeValidToRule";
 import { SwapCatUpgradeable } from "../typechain/SwapCatUpgradeable";
-// import { SwapCatUpgradeableV2 } from "../typechain/SwapCatUpgradeableV2";
+import { SwapCatUpgradeableV2 } from "../typechain/SwapCatUpgradeableV2";
 
 describe("SwapCatUpgradeable", function () {
   async function makeSuite() {
@@ -780,18 +780,18 @@ describe("SwapCatUpgradeable", function () {
     });
   });
 
-  // describe("8. Upgradeability", function () {
-  //   it("Should be able to upgrade by the upgrader admin", async function () {
-  //     const { swapCatUpgradeable } = await loadFixture(makeSuite);
-  //     const SwapCatUpgradeableV2 = await ethers.getContractFactory(
-  //       "SwapCatUpgradeableV2"
-  //     );
-  //     const swapCatUpgradeableV2 = (await upgrades.upgradeProxy(
-  //       swapCatUpgradeable.address,
-  //       SwapCatUpgradeableV2,
-  //       { kind: "uups" }
-  //     )) as SwapCatUpgradeableV2;
-  //     await swapCatUpgradeableV2.deployed();
-  //   });
-  // });
+  describe("8. Upgradeability", function () {
+    it("Should be able to upgrade by the upgrader admin", async function () {
+      const { swapCatUpgradeable } = await loadFixture(makeSuite);
+      const SwapCatUpgradeableV2 = await ethers.getContractFactory(
+        "SwapCatUpgradeableV2"
+      );
+      const swapCatUpgradeableV2 = (await upgrades.upgradeProxy(
+        swapCatUpgradeable.address,
+        SwapCatUpgradeableV2,
+        { kind: "uups" }
+      )) as SwapCatUpgradeableV2;
+      await swapCatUpgradeableV2.deployed();
+    });
+  });
 });
