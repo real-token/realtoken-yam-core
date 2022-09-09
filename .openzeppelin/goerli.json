@@ -5,6 +5,11 @@
       "address": "0x9EC2D0A68e9F49B37e77C63Bc38E58B11D345b3b",
       "txHash": "0x1f0d13195362daf593968d2fe37ba3ecaa4585634639b5d17c3a12d54527c869",
       "kind": "uups"
+    },
+    {
+      "address": "0x29e5E952cDC6c6fF8AB8E621da2D5cDf6CF332e6",
+      "txHash": "0x81deb9c940312df46172e18ee9180e00360e9e7c3a47194a02a6155f76ae93e1",
+      "kind": "uups"
     }
   ],
   "impls": {
@@ -114,6 +119,164 @@
             "label": "__gap",
             "type": "t_array(t_uint256)42_storage",
             "src": "contracts\\SwapCatUpgradeable.sol:315"
+          }
+        ],
+        "types": {
+          "t_mapping(t_uint256,t_uint256)": {
+            "label": "mapping(uint256 => uint256)"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_mapping(t_uint256,t_address)": {
+            "label": "mapping(uint256 => address)"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)"
+          },
+          "t_bool": {
+            "label": "bool"
+          },
+          "t_array(t_uint256)42_storage": {
+            "label": "uint256[42]"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)34_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_struct(RoleData)34_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "members",
+                "type": "t_mapping(t_address,t_bool)"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32"
+              }
+            ]
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          }
+        }
+      }
+    },
+    "5651a7cecfc2420dc2d44cceaa1ebe0ab11697fce627e05aebd0b190e6f19ba0": {
+      "address": "0xaC1AA9fcB69D7CF43F762aD1B9F42968600dEC08",
+      "txHash": "0xb2be0ea65a3fe4c603c5ee50350bd374aeb67c7dec91b6b74d6fb493f3251a14",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:39"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:44"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:36"
+          },
+          {
+            "contract": "ERC165Upgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\utils\\introspection\\ERC165Upgradeable.sol:41"
+          },
+          {
+            "contract": "AccessControlUpgradeable",
+            "label": "_roles",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)34_storage)",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\AccessControlUpgradeable.sol:61"
+          },
+          {
+            "contract": "AccessControlUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\AccessControlUpgradeable.sol:235"
+          },
+          {
+            "contract": "ERC1967UpgradeUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\ERC1967\\ERC1967UpgradeUpgradeable.sol:211"
+          },
+          {
+            "contract": "UUPSUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\UUPSUpgradeable.sol:107"
+          },
+          {
+            "contract": "SwapCatUpgradeable",
+            "label": "prices",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "src": "contracts\\SwapCatUpgradeable.sol:16"
+          },
+          {
+            "contract": "SwapCatUpgradeable",
+            "label": "offerTokens",
+            "type": "t_mapping(t_uint256,t_address)",
+            "src": "contracts\\SwapCatUpgradeable.sol:17"
+          },
+          {
+            "contract": "SwapCatUpgradeable",
+            "label": "buyerTokens",
+            "type": "t_mapping(t_uint256,t_address)",
+            "src": "contracts\\SwapCatUpgradeable.sol:18"
+          },
+          {
+            "contract": "SwapCatUpgradeable",
+            "label": "sellers",
+            "type": "t_mapping(t_uint256,t_address)",
+            "src": "contracts\\SwapCatUpgradeable.sol:19"
+          },
+          {
+            "contract": "SwapCatUpgradeable",
+            "label": "whitelistedTokens",
+            "type": "t_mapping(t_address,t_bool)",
+            "src": "contracts\\SwapCatUpgradeable.sol:20"
+          },
+          {
+            "contract": "SwapCatUpgradeable",
+            "label": "offerCount",
+            "type": "t_uint256",
+            "src": "contracts\\SwapCatUpgradeable.sol:21"
+          },
+          {
+            "contract": "SwapCatUpgradeable",
+            "label": "admin",
+            "type": "t_address",
+            "src": "contracts\\SwapCatUpgradeable.sol:22"
+          },
+          {
+            "contract": "SwapCatUpgradeable",
+            "label": "moderator",
+            "type": "t_address",
+            "src": "contracts\\SwapCatUpgradeable.sol:23"
+          },
+          {
+            "contract": "SwapCatUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)42_storage",
+            "src": "contracts\\SwapCatUpgradeable.sol:390"
           }
         ],
         "types": {

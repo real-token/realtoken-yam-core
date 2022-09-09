@@ -9,6 +9,8 @@ interface IERC20 {
     view
     returns (uint256);
 
+  function approve(address spender, uint256 amount) external returns (bool);
+
   // no return value on transfer and transferFrom to tolerate old erc20 tokens
   // we work around that in the buy function by checking balance twice
   function transferFrom(

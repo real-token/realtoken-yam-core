@@ -80,14 +80,14 @@ contract SwapCatUpgradeable is
    * @notice Creates a new offer or updates an existing offer (call this again with the changed price + offerId)
    * @param _offerToken The address of the token to be sold
    * @param _buyerToken The address of the token to be bought
-   * @param _price The price in base units of the token to be sold
    * @param _offerId The Id of the offer (0 if new offer)
+   * @param _price The price in base units of the token to be sold
    **/
   function _createOffer(
     address _offerToken,
     address _buyerToken,
-    uint256 _price,
-    uint256 _offerId
+    uint256 _offerId,
+    uint256 _price
   )
     private
     onlyWhitelistedToken(_offerToken)
@@ -112,68 +112,65 @@ contract SwapCatUpgradeable is
     }
     prices[_offerId] = _price;
 
-    emit OfferCreated(_offerToken, _buyerToken, _price, _offerId);
+    emit OfferCreated(_offerToken, _buyerToken, _offerId, _price);
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
   function createOffer(
-    address _offerToken,
-    address _buyerToken,
-    uint256 _price,
-    uint256 _offerId
+    address offerToken,
+    address buyerToken,
+    uint256 offerId,
+    uint256 price
   ) external override {
-    _createOffer(_offerToken, _buyerToken, _price, _offerId);
+    _createOffer(offerToken, buyerToken, offerId, price);
     // IERC20(_offerToken).approve(address(this), _amount);
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
   function createOfferWithPermit(
-    address _offerToken,
-    address _buyerToken,
-    uint256 _price,
-    uint256 _offerId,
-    uint256 _amount,
-    uint256 _deadline,
-    uint8 _v,
-    bytes32 _r,
-    bytes32 _s
+    address offerToken,
+    address buyerToken,
+    uint256 offerId,
+    uint256 price,
+    uint256 amount,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
   ) external override {
-    _createOffer(_offerToken, _buyerToken, _price, _offerId);
-    IBridgeToken(_offerToken).permit(
+    _createOffer(offerToken, buyerToken, offerId, price);
+    IBridgeToken(offerToken).permit(
       msg.sender,
       address(this),
-      _amount,
-      _deadline,
-      _v,
-      _r,
-      _s
+      amount,
+      deadline,
+      v,
+      r,
+      s
     );
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
-  function deleteOffer(uint256 _offerId) external override {
-    require(
-      sellers[_offerId] == msg.sender,
-      "only the seller can delete offer"
-    );
-    delete sellers[_offerId];
-    delete offerTokens[_offerId];
-    delete buyerTokens[_offerId];
-    delete prices[_offerId];
-    emit OfferDeleted(_offerId);
+  function deleteOffer(uint256 offerId) external override {
+    require(sellers[offerId] == msg.sender, "only the seller can delete offer");
+    delete sellers[offerId];
+    delete offerTokens[offerId];
+    delete buyerTokens[offerId];
+    delete prices[offerId];
+    emit OfferDeleted(offerId);
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
-  function deleteOfferByAdmin(uint256 _offerId)
+  function deleteOfferByAdmin(uint256 offerId)
     external
     override
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
-    delete sellers[_offerId];
-    delete offerTokens[_offerId];
-    delete buyerTokens[_offerId];
-    delete prices[_offerId];
-    emit OfferDeleted(_offerId);
+    delete sellers[offerId];
+    delete offerTokens[offerId];
+    delete buyerTokens[offerId];
+    delete prices[offerId];
+    emit OfferDeleted(offerId);
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
@@ -182,7 +179,7 @@ contract SwapCatUpgradeable is
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
-  function tokenInfo(address _tokenaddr)
+  function tokenInfo(address tokenaddr)
     public
     view
     override
@@ -192,12 +189,12 @@ contract SwapCatUpgradeable is
       string memory
     )
   {
-    IERC20 tokeni = IERC20(_tokenaddr);
+    IERC20 tokeni = IERC20(tokenaddr);
     return (tokeni.decimals(), tokeni.symbol(), tokeni.name());
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
-  function showOffer(uint256 _offerId)
+  function showOffer(uint256 offerId)
     public
     view
     override
@@ -209,12 +206,12 @@ contract SwapCatUpgradeable is
       uint256
     )
   {
-    IERC20 offerTokeni = IERC20(offerTokens[_offerId]);
+    IERC20 offerTokeni = IERC20(offerTokens[offerId]);
 
     // get offerTokens balance and allowance, whichever is lower is the available amount
-    uint256 availablebalance = offerTokeni.balanceOf(sellers[_offerId]);
+    uint256 availablebalance = offerTokeni.balanceOf(sellers[offerId]);
     uint256 availableallow = offerTokeni.allowance(
-      sellers[_offerId],
+      sellers[offerId],
       address(this)
     );
 
@@ -223,24 +220,24 @@ contract SwapCatUpgradeable is
     }
 
     return (
-      offerTokens[_offerId],
-      buyerTokens[_offerId],
-      sellers[_offerId],
-      prices[_offerId],
+      offerTokens[offerId],
+      buyerTokens[offerId],
+      sellers[offerId],
+      prices[offerId],
       availablebalance
     );
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
-  function pricePreview(uint256 _offerId, uint256 _amount)
+  function pricePreview(uint256 offerId, uint256 amount)
     public
     view
     override
     returns (uint256)
   {
-    IERC20 offerTokeni = IERC20(offerTokens[_offerId]);
+    IERC20 offerTokeni = IERC20(offerTokens[offerId]);
     return
-      (_amount * prices[_offerId]) / (uint256(10)**offerTokeni.decimals()) + 1;
+      (amount * prices[offerId]) / (uint256(10)**offerTokeni.decimals()) + 1;
   }
 
   /**
@@ -248,13 +245,13 @@ contract SwapCatUpgradeable is
    * @notice The buyer must bring the price correctly to ensure no frontrunning / changed offer
    * @notice If the offer is changed in meantime, it will not execute
    * @param _offerId The Id of the offer
-   * @param _offerTokenAmount The amount of offer tokens
    * @param _price The price in base units of the offer tokens
+   * @param _amount The amount of offer tokens
    **/
   function _buy(
     uint256 _offerId,
-    uint256 _offerTokenAmount,
-    uint256 _price
+    uint256 _price,
+    uint256 _amount
   ) private {
     IERC20 offerTokenInterface = IERC20(offerTokens[_offerId]);
     IERC20 buyerTokenInterface = IERC20(buyerTokens[_offerId]);
@@ -268,12 +265,12 @@ contract SwapCatUpgradeable is
         offerTokens[_offerId],
         sellers[_offerId],
         msg.sender,
-        _offerTokenAmount
+        _amount
       ),
       "transfer is not valid"
     );
     // calculate the price of the order
-    uint256 buyerTokenAmount = (_offerTokenAmount * _price) /
+    uint256 buyerTokenAmount = (_amount * _price) /
       (uint256(10)**offerTokenInterface.decimals()) +
       1;
 
@@ -287,11 +284,7 @@ contract SwapCatUpgradeable is
       sellers[_offerId],
       buyerTokenAmount
     );
-    offerTokenInterface.transferFrom(
-      sellers[_offerId],
-      msg.sender,
-      _offerTokenAmount
-    );
+    offerTokenInterface.transferFrom(sellers[_offerId], msg.sender, _amount);
 
     // now check if the balances changed on both accounts.
     // we do not check for exact amounts since some tokens behave differently with fees, burnings, etc
@@ -305,36 +298,42 @@ contract SwapCatUpgradeable is
       "seller error"
     );
 
-    emit OfferAccepted(_offerId, msg.sender, _offerTokenAmount);
+    emit OfferAccepted(
+      _offerId,
+      sellers[_offerId],
+      msg.sender,
+      _price,
+      _amount
+    );
   }
 
   function buy(
-    uint256 _offerId,
-    uint256 _offerTokenAmount,
-    uint256 _price
+    uint256 offerId,
+    uint256 price,
+    uint256 amount
   ) external override {
-    _buy(_offerId, _offerTokenAmount, _price);
+    _buy(offerId, price, amount);
   }
 
   function buyWithPermit(
-    uint256 _offerId,
-    uint256 _offerTokenAmount,
-    uint256 _price,
-    uint256 _deadline,
-    uint8 _v,
-    bytes32 _r,
-    bytes32 _s
+    uint256 offerId,
+    uint256 price,
+    uint256 amount,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
   ) external override {
-    IBridgeToken(buyerTokens[_offerId]).permit(
+    IBridgeToken(buyerTokens[offerId]).permit(
       msg.sender,
       address(this),
-      _offerTokenAmount,
-      _deadline,
-      _v,
-      _r,
-      _s
+      amount,
+      deadline,
+      v,
+      r,
+      s
     );
-    _buy(_offerId, _offerTokenAmount, _price);
+    _buy(offerId, price, amount);
   }
 
   /// @inheritdoc	ISwapCatUpgradeable

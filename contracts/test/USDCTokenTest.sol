@@ -3,10 +3,11 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "hardhat/console.sol";
 
-contract USDCTokenTest is ERC20, Ownable {
-  constructor() ERC20("USDC Token", "USDC") {
+contract USDCTokenTest is ERC20, ERC20Permit, Ownable {
+  constructor() ERC20("USDC Token", "USDC") ERC20Permit("USDC Token") {
     _mint(msg.sender, 1000000 * 10**decimals());
   }
 
