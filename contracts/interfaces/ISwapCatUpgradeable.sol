@@ -10,12 +10,14 @@ interface ISwapCatUpgradeable {
    * @param buyerToken the token you want to buy
    * @param offerId the Id of the offer
    * @param price the price in baseunits of the token you want to sell
+   * @param amount the amount of tokens you want to sell
    **/
   event OfferCreated(
     address indexed offerToken,
     address indexed buyerToken,
     uint256 indexed offerId,
-    uint256 price
+    uint256 price,
+    uint256 amount
   );
 
   /**
@@ -73,7 +75,8 @@ interface ISwapCatUpgradeable {
     address offerToken,
     address buyerToken,
     uint256 offerId,
-    uint256 price
+    uint256 price,
+    uint256 amount
   ) external;
 
   /**

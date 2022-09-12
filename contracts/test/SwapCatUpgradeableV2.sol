@@ -82,12 +82,14 @@ contract SwapCatUpgradeableV2 is
    * @param _buyerToken The address of the token to be bought
    * @param _offerId The Id of the offer (0 if new offer)
    * @param _price The price in base units of the token to be sold
+   * @param _amount The amount of tokens to be sold
    **/
   function _createOffer(
     address _offerToken,
     address _buyerToken,
     uint256 _offerId,
-    uint256 _price
+    uint256 _price,
+    uint256 _amount
   )
     private
     onlyWhitelistedToken(_offerToken)
@@ -112,7 +114,7 @@ contract SwapCatUpgradeableV2 is
     }
     prices[_offerId] = _price;
 
-    emit OfferCreated(_offerToken, _buyerToken, _offerId, _price);
+    emit OfferCreated(_offerToken, _buyerToken, _offerId, _price, _amount);
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
@@ -120,10 +122,11 @@ contract SwapCatUpgradeableV2 is
     address offerToken,
     address buyerToken,
     uint256 offerId,
-    uint256 price
+    uint256 price,
+    uint256 amount
   ) external override {
-    _createOffer(offerToken, buyerToken, offerId, price);
-    // IERC20(_offerToken).approve(address(this), _amount);
+    _createOffer(offerToken, buyerToken, offerId, price, amount);
+    IERC20(offerToken).approve(address(this), amount);
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
@@ -138,7 +141,7 @@ contract SwapCatUpgradeableV2 is
     bytes32 r,
     bytes32 s
   ) external override {
-    _createOffer(offerToken, buyerToken, offerId, price);
+    _createOffer(offerToken, buyerToken, offerId, price, amount);
     IBridgeToken(offerToken).permit(
       msg.sender,
       address(this),

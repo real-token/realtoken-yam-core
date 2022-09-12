@@ -228,12 +228,24 @@ describe("SwapCatUpgradeable", function () {
     // Create offer: offerId = 0
     await swapCatUpgradeable
       .connect(user1)
-      .createOffer(bridgeToken.address, usdcTokenTest.address, 0, 50000000);
+      .createOffer(
+        bridgeToken.address,
+        usdcTokenTest.address,
+        0,
+        50000000,
+        BigNumber.from("1000000000000000000000")
+      );
 
     // Create offer: offerId = 1
     await swapCatUpgradeable
       .connect(user1)
-      .createOffer(bridgeToken.address, usdcTokenTest.address, 0, 55000000);
+      .createOffer(
+        bridgeToken.address,
+        usdcTokenTest.address,
+        0,
+        55000000,
+        BigNumber.from("1000000000000000000000")
+      );
 
     await bridgeToken
       .connect(user1)
@@ -343,22 +355,36 @@ describe("SwapCatUpgradeable", function () {
           bridgeToken.address,
           usdcTokenTest.address,
           0,
-          10
+          10,
+          BigNumber.from("1000000000000000000000")
         )
       )
         .to.emit(swapCatUpgradeable, "OfferCreated")
-        .withArgs(bridgeToken.address, usdcTokenTest.address, 0, 10);
+        .withArgs(
+          bridgeToken.address,
+          usdcTokenTest.address,
+          0,
+          10,
+          BigNumber.from("1000000000000000000000")
+        );
 
       await expect(
         swapCatUpgradeable.createOffer(
           bridgeToken.address,
           usdcTokenTest.address,
           0,
-          15
+          15,
+          BigNumber.from("1000000000000000000000")
         )
       )
         .to.emit(swapCatUpgradeable, "OfferCreated")
-        .withArgs(bridgeToken.address, usdcTokenTest.address, 1, 15);
+        .withArgs(
+          bridgeToken.address,
+          usdcTokenTest.address,
+          1,
+          15,
+          BigNumber.from("1000000000000000000000")
+        );
     });
 
     it("Create Offer: should revert when the tokens are not whitelisted", async function () {
@@ -370,7 +396,8 @@ describe("SwapCatUpgradeable", function () {
           bridgeToken.address,
           usdcTokenTest.address,
           0,
-          10
+          10,
+          BigNumber.from("1000000000000000000000")
         )
       ).to.be.revertedWith("Token is not whitelisted");
     });
@@ -381,10 +408,22 @@ describe("SwapCatUpgradeable", function () {
       await expect(
         swapCatUpgradeable
           .connect(user1)
-          .createOffer(bridgeToken.address, usdcTokenTest.address, 1, 100)
+          .createOffer(
+            bridgeToken.address,
+            usdcTokenTest.address,
+            1,
+            100,
+            BigNumber.from("1000000000000000000000")
+          )
       )
         .to.emit(swapCatUpgradeable, "OfferCreated")
-        .withArgs(bridgeToken.address, usdcTokenTest.address, 1, 100);
+        .withArgs(
+          bridgeToken.address,
+          usdcTokenTest.address,
+          1,
+          100,
+          BigNumber.from("1000000000000000000000")
+        );
     });
 
     it("Modify offer: non-seller should not be able to modify the offer", async function () {
@@ -395,7 +434,13 @@ describe("SwapCatUpgradeable", function () {
       await expect(
         swapCatUpgradeable
           .connect(user2)
-          .createOffer(bridgeToken.address, usdcTokenTest.address, 1, 20)
+          .createOffer(
+            bridgeToken.address,
+            usdcTokenTest.address,
+            1,
+            20,
+            BigNumber.from("1000000000000000000000")
+          )
       ).to.revertedWith("only the seller can change offer");
     });
 
@@ -451,7 +496,7 @@ describe("SwapCatUpgradeable", function () {
       const { swapCatUpgradeable } = await loadFixture(
         makeSuiteWhitelistAndCreateOffer
       );
-      expect(await swapCatUpgradeable.getOfferCount()).to.equal(1);
+      expect(await swapCatUpgradeable.getOfferCount()).to.equal(2);
     });
     it("Function tokenInfo: should work", async function () {
       const { bridgeToken, usdcTokenTest, swapCatUpgradeable } =
@@ -564,10 +609,22 @@ describe("SwapCatUpgradeable", function () {
       await expect(
         swapCatUpgradeable
           .connect(user1)
-          .createOffer(bridgeToken.address, usdcTokenTest.address, 0, 60000000)
+          .createOffer(
+            bridgeToken.address,
+            usdcTokenTest.address,
+            0,
+            60000000,
+            BigNumber.from("1000000000000000000000")
+          )
       )
         .to.emit(swapCatUpgradeable, "OfferCreated")
-        .withArgs(bridgeToken.address, usdcTokenTest.address, 0, 60000000);
+        .withArgs(
+          bridgeToken.address,
+          usdcTokenTest.address,
+          0,
+          60000000,
+          BigNumber.from("1000000000000000000000")
+        );
 
       console.log("OfferCount: ", await swapCatUpgradeable.getOfferCount());
 
