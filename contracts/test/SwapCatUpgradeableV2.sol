@@ -126,7 +126,6 @@ contract SwapCatUpgradeableV2 is
     uint256 amount
   ) external override {
     _createOffer(offerToken, buyerToken, offerId, price, amount);
-    IERC20(offerToken).approve(address(this), amount);
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
