@@ -1,4 +1,4 @@
-import { ethers, upgrades, run } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 
 async function main() {
   const swapCatUpgradeableV2 = await ethers.getContractFactory(
@@ -9,20 +9,7 @@ async function main() {
     swapCatUpgradeableV2
   );
 
-  const implAddress = await upgrades.erc1967.getImplementationAddress(
-    swapCatUpgraded.address
-  );
-
-  console.log("Box upgraded");
-  console.log(`Implementation address deployed: ${implAddress}`);
-  try {
-    await run("verify:verify", {
-      address: implAddress,
-      constructorArguments: [],
-    });
-  } catch (err) {
-    console.log(err);
-  }
+  console.log("The contract is upgraded");
 }
 
 main();

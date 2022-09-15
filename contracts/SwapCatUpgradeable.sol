@@ -326,10 +326,13 @@ contract SwapCatUpgradeable is
     bytes32 r,
     bytes32 s
   ) external override {
+    uint256 buyerTokenAmount = (price * amount) /
+      (uint256(10)**IERC20(offerTokens[offerId]).decimals()) +
+      1;
     IBridgeToken(buyerTokens[offerId]).permit(
       msg.sender,
       address(this),
-      amount,
+      buyerTokenAmount,
       deadline,
       v,
       r,
