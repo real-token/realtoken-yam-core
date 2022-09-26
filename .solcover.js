@@ -36,6 +36,7 @@ module.exports = {
     "test/bridge-token/token/abstract/BridgeERC20.sol",
     "test/bridge-token/token/abstract/SeizableBridgeERC20.sol",
     "test/bridge-token/token/BridgeToken.sol",
+    "test/bridge-token/token/CoinBridgeToken.sol",
     "test/bridge-token/token/utils/ECRecover.sol",
     "test/bridge-token/token/utils/EIP712.sol",
   ],
