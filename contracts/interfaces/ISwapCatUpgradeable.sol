@@ -5,6 +5,12 @@ import "./IComplianceRegistry.sol";
 
 interface ISwapCatUpgradeable {
   /**
+   * @dev Emitted after an offer is updated
+   * @param tokens the token addresses
+   **/
+  event TokenWhitelistToggled(address[] tokens, bool[] status);
+
+  /**
    * @dev Emitted after an offer is created
    * @param offerToken the token you want to sell
    * @param buyerToken the token you want to buy
@@ -19,6 +25,14 @@ interface ISwapCatUpgradeable {
     uint256 price,
     uint256 amount
   );
+
+  /**
+   * @dev Emitted after an offer is updated
+   * @param offerId the Id of the offer
+   * @param price the price in baseunits of the token you want to sell
+   * @param amount the amount of tokens you want to sell
+   **/
+  event OfferUpdated(uint256 indexed offerId, uint256 price, uint256 amount);
 
   /**
    * @dev Emitted after an offer is deleted
@@ -43,18 +57,6 @@ interface ISwapCatUpgradeable {
   );
 
   /**
-   * @dev Emitted after a token is whitelisted
-   * @param token the token address that is whitelisted
-   **/
-  event TokenWhitelisted(address indexed token);
-
-  /**
-   * @dev Emitted after a token is unwhitelisted
-   * @param token the token address that is unwhitelisted
-   **/
-  event TokenUnWhitelisted(address indexed token);
-
-  /**
    * @dev Emitted after the moderator right is transferred
    * @param oldModerator the address of old moderator
    * @param newModerator the address of new moderator
@@ -70,6 +72,7 @@ interface ISwapCatUpgradeable {
    * @param buyerToken The address of the token to be bought
    * @param offerId The Id of the offer (0 if new offer)
    * @param price The price in base units of the token to be sold
+   * @param amount The amount of the offer token
    **/
   function createOffer(
     address offerToken,
@@ -101,6 +104,18 @@ interface ISwapCatUpgradeable {
     uint8 v,
     bytes32 r,
     bytes32 s
+  ) external;
+
+  /**
+   * @notice Updates an existing offer (call this again with the changed price + offerId)
+   * @param offerId The Id of the offer
+   * @param price The price in base units of the token to be sold
+   * @param amount The amount of the offer token
+   **/
+  function updateOffer(
+    uint256 offerId,
+    uint256 price,
+    uint256 amount
   ) external;
 
   /**
@@ -208,9 +223,10 @@ interface ISwapCatUpgradeable {
 
   /**
    * @notice Whitelist or unwhitelist a token
-   * @param token The token address
+   * @param tokens The token addresses
    **/
-  function toggleWhitelist(address token) external;
+  function toggleWhitelist(address[] calldata tokens, bool[] calldata status)
+    external;
 
   /**
    * @notice Returns whether the token is whitelisted

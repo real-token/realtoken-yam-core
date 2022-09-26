@@ -61,14 +61,18 @@ contract SwapCatUpgradeable is
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
-  function toggleWhitelist(address token_)
+  function toggleWhitelist(address[] calldata tokens_, bool[] calldata status_)
     external
     override
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
-    whitelistedTokens[token_] = !whitelistedTokens[token_];
-    if (whitelistedTokens[token_]) emit TokenWhitelisted(token_);
-    else emit TokenUnWhitelisted(token_);
+    require(tokens_.length == status_.length, "Lengths are not equal");
+    uint256 length = tokens_.length;
+    for (uint256 i = 0; i < length; ) {
+      whitelistedTokens[tokens_[i]] = status_[i];
+      ++i;
+    }
+    emit TokenWhitelistToggled(tokens_, status_);
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
@@ -150,6 +154,17 @@ contract SwapCatUpgradeable is
       r,
       s
     );
+  }
+
+  /// @inheritdoc	ISwapCatUpgradeable
+  function updateOffer(
+    uint256 offerId,
+    uint256 price,
+    uint256 amount
+  ) external override {
+    require(sellers[offerId] == msg.sender, "only the seller can change offer");
+    prices[offerId] = price;
+    emit OfferUpdated(offerId, price, amount);
   }
 
   /// @inheritdoc	ISwapCatUpgradeable

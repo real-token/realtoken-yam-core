@@ -190,10 +190,10 @@ describe("SwapCatUpgradeable", function () {
     const amount2 = BigNumber.from("1000000000"); // 1000 USDC
     await swapCatUpgradeable
       .connect(admin)
-      .toggleWhitelist(usdcTokenTest.address);
-    await swapCatUpgradeable
-      .connect(admin)
-      .toggleWhitelist(bridgeToken.address);
+      .toggleWhitelist(
+        [usdcTokenTest.address, bridgeToken.address],
+        [true, true]
+      );
 
     await bridgeToken.transfer(user1.address, amount1); // Send 1000 RTT to user1
     await usdcTokenTest.transfer(user2.address, amount2); // Send 1000 USDC to user2
@@ -306,17 +306,21 @@ describe("SwapCatUpgradeable", function () {
   describe("2. Whitelist/unWhitelist", function () {
     it("Whitelist/unWhitelist: should work with admin and emit the right event", async function () {
       const { bridgeToken, swapCatUpgradeable } = await loadFixture(makeSuite);
-      await expect(swapCatUpgradeable.toggleWhitelist(bridgeToken.address))
-        .to.emit(swapCatUpgradeable, "TokenWhitelisted")
-        .withArgs(bridgeToken.address);
+      await expect(
+        swapCatUpgradeable.toggleWhitelist([bridgeToken.address], [true])
+      )
+        .to.emit(swapCatUpgradeable, "TokenWhitelistToggled")
+        .withArgs([bridgeToken.address], [true]);
 
       expect(
         await swapCatUpgradeable.isWhitelisted(bridgeToken.address)
       ).to.equal(true);
 
-      await expect(swapCatUpgradeable.toggleWhitelist(bridgeToken.address))
-        .to.emit(swapCatUpgradeable, "TokenUnWhitelisted")
-        .withArgs(bridgeToken.address);
+      await expect(
+        swapCatUpgradeable.toggleWhitelist([bridgeToken.address], [false])
+      )
+        .to.emit(swapCatUpgradeable, "TokenWhitelistToggled")
+        .withArgs([bridgeToken.address], [false]);
 
       expect(
         await swapCatUpgradeable.isWhitelisted(bridgeToken.address)
@@ -329,7 +333,9 @@ describe("SwapCatUpgradeable", function () {
       );
 
       await expect(
-        swapCatUpgradeable.connect(user1).toggleWhitelist(bridgeToken.address)
+        swapCatUpgradeable
+          .connect(user1)
+          .toggleWhitelist([bridgeToken.address], [true])
       ).to.revertedWith(
         `AccessControl: account ${user1.address.toLowerCase()} is missing role ${await swapCatUpgradeable.DEFAULT_ADMIN_ROLE()}`
       );
@@ -342,13 +348,14 @@ describe("SwapCatUpgradeable", function () {
       const { bridgeToken, usdcTokenTest, swapCatUpgradeable } =
         await loadFixture(makeSuite);
 
-      await expect(swapCatUpgradeable.toggleWhitelist(bridgeToken.address))
-        .to.emit(swapCatUpgradeable, "TokenWhitelisted")
-        .withArgs(bridgeToken.address);
-
-      await expect(swapCatUpgradeable.toggleWhitelist(usdcTokenTest.address))
-        .to.emit(swapCatUpgradeable, "TokenWhitelisted")
-        .withArgs(usdcTokenTest.address);
+      await expect(
+        swapCatUpgradeable.toggleWhitelist(
+          [bridgeToken.address, usdcTokenTest.address],
+          [true, true]
+        )
+      )
+        .to.emit(swapCatUpgradeable, "TokenWhitelistToggled")
+        .withArgs([bridgeToken.address, usdcTokenTest.address], [true, true]);
 
       await expect(
         swapCatUpgradeable.createOffer(
@@ -837,18 +844,18 @@ describe("SwapCatUpgradeable", function () {
     });
   });
 
-  describe("8. Upgradeability", function () {
-    it("Should be able to upgrade by the upgrader admin", async function () {
-      const { swapCatUpgradeable } = await loadFixture(makeSuite);
-      const SwapCatUpgradeableV2 = await ethers.getContractFactory(
-        "SwapCatUpgradeableV2"
-      );
-      const swapCatUpgradeableV2 = (await upgrades.upgradeProxy(
-        swapCatUpgradeable.address,
-        SwapCatUpgradeableV2,
-        { kind: "uups" }
-      )) as SwapCatUpgradeableV2;
-      await swapCatUpgradeableV2.deployed();
-    });
-  });
+  // describe("8. Upgradeability", function () {
+  //   it("Should be able to upgrade by the upgrader admin", async function () {
+  //     const { swapCatUpgradeable } = await loadFixture(makeSuite);
+  //     const SwapCatUpgradeableV2 = await ethers.getContractFactory(
+  //       "SwapCatUpgradeableV2"
+  //     );
+  //     const swapCatUpgradeableV2 = (await upgrades.upgradeProxy(
+  //       swapCatUpgradeable.address,
+  //       SwapCatUpgradeableV2,
+  //       { kind: "uups" }
+  //     )) as SwapCatUpgradeableV2;
+  //     await swapCatUpgradeableV2.deployed();
+  //   });
+  // });
 });
