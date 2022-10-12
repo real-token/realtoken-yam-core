@@ -8,7 +8,7 @@ interface ISwapCatUpgradeable {
    * @dev Emitted after an offer is updated
    * @param tokens the token addresses
    **/
-  event TokenWhitelistToggled(address[] tokens, bool[] status);
+  event TokenWhitelistToggled(address[] indexed tokens, bool[] indexed status);
 
   /**
    * @dev Emitted after an offer is created
@@ -29,10 +29,16 @@ interface ISwapCatUpgradeable {
   /**
    * @dev Emitted after an offer is updated
    * @param offerId the Id of the offer
-   * @param price the price in baseunits of the token you want to sell
-   * @param amount the amount of tokens you want to sell
+   * @param oldPrice the old price of the token
+   * @param newPrice the old price of the token
+   * @param amount the amount of tokens
    **/
-  event OfferUpdated(uint256 indexed offerId, uint256 price, uint256 amount);
+  event OfferUpdated(
+    uint256 indexed offerId,
+    uint256 oldPrice,
+    uint256 newPrice,
+    uint256 amount
+  );
 
   /**
    * @dev Emitted after an offer is deleted
@@ -52,18 +58,10 @@ interface ISwapCatUpgradeable {
     uint256 indexed offerId,
     address indexed seller,
     address indexed buyer,
+    address offerToken,
+    address buyerToken,
     uint256 price,
     uint256 amount
-  );
-
-  /**
-   * @dev Emitted after the moderator right is transferred
-   * @param oldModerator the address of old moderator
-   * @param newModerator the address of new moderator
-   **/
-  event ModeratorTransferred(
-    address indexed oldModerator,
-    address indexed newModerator
   );
 
   /**
@@ -237,10 +235,4 @@ interface ISwapCatUpgradeable {
 
   // in case someone wrongfully directly sends erc20 to this contract address, the moderator can move them out
   function saveLostTokens(address token) external;
-
-  /**
-   * @notice Transfer the moderator right to a new address
-   * @param newModerator The address of new moderator
-   **/
-  function transferModerator(address newModerator) external;
 }

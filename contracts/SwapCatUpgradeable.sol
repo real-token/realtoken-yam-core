@@ -12,12 +12,13 @@ contract SwapCatUpgradeable is
   ISwapCatUpgradeable
 {
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+  bytes32 public constant MODERATOR_ROLE = keccak256("MODERATOR_ROLE");
 
   mapping(uint256 => uint256) internal prices;
   mapping(uint256 => address) internal offerTokens;
   mapping(uint256 => address) internal buyerTokens;
   mapping(uint256 => address) internal sellers;
-  mapping(address => bool) public whitelistedTokens;
+  mapping(address => bool) internal whitelistedTokens;
   uint256 internal offerCount;
   address public admin; // admin address
   address public moderator; // moderator address, can move stuck funds
@@ -31,6 +32,7 @@ contract SwapCatUpgradeable is
 
     _grantRole(DEFAULT_ADMIN_ROLE, admin_);
     _grantRole(UPGRADER_ROLE, admin_);
+    _grantRole(MODERATOR_ROLE, moderator_);
     admin = admin_;
     moderator = moderator_;
   }
@@ -45,10 +47,14 @@ contract SwapCatUpgradeable is
   {}
 
   /**
-   * @dev Only moderator can call functions marked by this modifier.
+   * @dev Only moderator or admin can call functions marked by this modifier.
    **/
-  modifier onlyModerator() {
-    require(msg.sender == moderator, "Caller is not moderator");
+  modifier onlyModeratorOrAdmin() {
+    require(
+      hasRole(MODERATOR_ROLE, _msgSender()) ||
+        hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
+      "caller is not moderator or admin"
+    );
     _;
   }
 
@@ -163,8 +169,8 @@ contract SwapCatUpgradeable is
     uint256 amount
   ) external override {
     require(sellers[offerId] == msg.sender, "only the seller can change offer");
+    emit OfferUpdated(offerId, prices[offerId], price, amount);
     prices[offerId] = price;
-    emit OfferUpdated(offerId, price, amount);
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
@@ -253,8 +259,7 @@ contract SwapCatUpgradeable is
     returns (uint256)
   {
     IERC20 offerTokeni = IERC20(offerTokens[offerId]);
-    return
-      (amount * prices[offerId]) / (uint256(10)**offerTokeni.decimals()) + 1;
+    return (amount * prices[offerId]) / (uint256(10)**offerTokeni.decimals());
   }
 
   /**
@@ -270,38 +275,36 @@ contract SwapCatUpgradeable is
     uint256 _price,
     uint256 _amount
   ) private {
-    IERC20 offerTokenInterface = IERC20(offerTokens[_offerId]);
-    IERC20 buyerTokenInterface = IERC20(buyerTokens[_offerId]);
+    address seller = sellers[_offerId];
+    address offerToken = offerTokens[_offerId];
+    address buyerToken = buyerTokens[_offerId];
+
+    IERC20 offerTokenInterface = IERC20(offerToken);
+    IERC20 buyerTokenInterface = IERC20(buyerToken);
 
     // given price is being checked with recorded data from mappings
     require(prices[_offerId] == _price, "offer price wrong");
 
     // Check if the transfer is valid
     require(
-      _isTransferValid(
-        offerTokens[_offerId],
-        sellers[_offerId],
-        msg.sender,
-        _amount
-      ),
+      _isTransferValid(offerToken, seller, msg.sender, _amount),
       "transfer is not valid"
     );
     // calculate the price of the order
+    require(
+      _amount * _price > (uint256(10)**offerTokenInterface.decimals()),
+      "amount too low"
+    );
     uint256 buyerTokenAmount = (_amount * _price) /
-      (uint256(10)**offerTokenInterface.decimals()) +
-      1;
+      (uint256(10)**offerTokenInterface.decimals());
 
     // some old erc20 tokens give no return value so we must work around by getting their balance before and after the exchange
     uint256 oldbuyerbalance = buyerTokenInterface.balanceOf(msg.sender);
-    uint256 oldsellerbalance = offerTokenInterface.balanceOf(sellers[_offerId]);
+    uint256 oldsellerbalance = offerTokenInterface.balanceOf(seller);
 
     // finally do the exchange
-    buyerTokenInterface.transferFrom(
-      msg.sender,
-      sellers[_offerId],
-      buyerTokenAmount
-    );
-    offerTokenInterface.transferFrom(sellers[_offerId], msg.sender, _amount);
+    buyerTokenInterface.transferFrom(msg.sender, seller, buyerTokenAmount);
+    offerTokenInterface.transferFrom(seller, msg.sender, _amount);
 
     // now check if the balances changed on both accounts.
     // we do not check for exact amounts since some tokens behave differently with fees, burnings, etc
@@ -311,14 +314,16 @@ contract SwapCatUpgradeable is
       "buyer error"
     );
     require(
-      oldsellerbalance > offerTokenInterface.balanceOf(sellers[_offerId]),
+      oldsellerbalance > offerTokenInterface.balanceOf(seller),
       "seller error"
     );
 
     emit OfferAccepted(
       _offerId,
-      sellers[_offerId],
+      seller,
       msg.sender,
+      offerToken,
+      buyerToken,
       _price,
       _amount
     );
@@ -342,8 +347,7 @@ contract SwapCatUpgradeable is
     bytes32 s
   ) external override {
     uint256 buyerTokenAmount = (price * amount) /
-      (uint256(10)**IERC20(offerTokens[offerId]).decimals()) +
-      1;
+      (uint256(10)**IERC20(offerTokens[offerId]).decimals());
     IBridgeToken(buyerTokens[offerId]).permit(
       msg.sender,
       address(this),
@@ -357,23 +361,16 @@ contract SwapCatUpgradeable is
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
-  function saveLostTokens(address token) external override {
-    require(
-      msg.sender == moderator || msg.sender == admin,
-      "only admin or moderator can move lost tokens"
-    );
-    IERC20 tokenInterface = IERC20(token);
-    tokenInterface.transfer(moderator, tokenInterface.balanceOf(address(this)));
-  }
-
-  /// @inheritdoc	ISwapCatUpgradeable
-  function transferModerator(address newModerator)
+  function saveLostTokens(address token)
     external
     override
-    onlyModerator
+    onlyModeratorOrAdmin
   {
-    emit ModeratorTransferred(moderator, newModerator);
-    moderator = newModerator;
+    IERC20 tokenInterface = IERC20(token);
+    tokenInterface.transfer(
+      msg.sender,
+      tokenInterface.balanceOf(address(this))
+    );
   }
 
   /**
@@ -400,11 +397,4 @@ contract SwapCatUpgradeable is
     // If everything is fine, return true
     return isTransferValid;
   }
-
-  /**
-   * @dev This empty reserved space is put in place to allow future versions to add new
-   * variables without shifting down storage in the inheritance chain.
-   * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
-   */
-  uint256[42] private __gap;
 }

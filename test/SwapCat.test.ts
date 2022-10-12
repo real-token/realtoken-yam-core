@@ -297,6 +297,12 @@ describe("SwapCatUpgradeable", function () {
 
     it("Should initialize with the right moderator", async function () {
       const { swapCatUpgradeable, moderator } = await loadFixture(makeSuite);
+      expect(
+        await swapCatUpgradeable.hasRole(
+          keccak256(toUtf8Bytes("MODERATOR_ROLE")),
+          moderator.address
+        )
+      ).to.equal(true);
 
       expect(await swapCatUpgradeable.moderator()).to.equal(moderator.address);
     });
@@ -310,7 +316,7 @@ describe("SwapCatUpgradeable", function () {
         swapCatUpgradeable.toggleWhitelist([bridgeToken.address], [true])
       )
         .to.emit(swapCatUpgradeable, "TokenWhitelistToggled")
-        .withArgs([bridgeToken.address], [true]);
+        .withArgs([bridgeToken.address], [true]).to.not.reverted;
 
       expect(
         await swapCatUpgradeable.isWhitelisted(bridgeToken.address)
@@ -320,7 +326,7 @@ describe("SwapCatUpgradeable", function () {
         swapCatUpgradeable.toggleWhitelist([bridgeToken.address], [false])
       )
         .to.emit(swapCatUpgradeable, "TokenWhitelistToggled")
-        .withArgs([bridgeToken.address], [false]);
+        .withArgs([bridgeToken.address], [false]).to.not.reverted;
 
       expect(
         await swapCatUpgradeable.isWhitelisted(bridgeToken.address)
@@ -355,7 +361,8 @@ describe("SwapCatUpgradeable", function () {
         )
       )
         .to.emit(swapCatUpgradeable, "TokenWhitelistToggled")
-        .withArgs([bridgeToken.address, usdcTokenTest.address], [true, true]);
+        .withArgs([bridgeToken.address, usdcTokenTest.address], [true, true]).to
+        .not.reverted;
 
       await expect(
         swapCatUpgradeable.createOffer(
@@ -575,7 +582,7 @@ describe("SwapCatUpgradeable", function () {
           0,
           BigNumber.from(1000000000000000)
         )
-      ).to.equal(BigNumber.from(50001));
+      ).to.equal(BigNumber.from(50000));
     });
   });
 
@@ -690,6 +697,8 @@ describe("SwapCatUpgradeable", function () {
           0,
           user1.address,
           user2.address,
+          bridgeToken.address,
+          usdcTokenTest.address,
           BigNumber.from("60000000"),
           BigNumber.from("10000000000000000")
         );
@@ -716,6 +725,7 @@ describe("SwapCatUpgradeable", function () {
         admin,
         moderator,
       } = await loadFixture(makeSuite);
+      const tokenAmount = 300;
 
       await complianceRegistry.registerUser(
         swapCatUpgradeable.address,
@@ -729,9 +739,9 @@ describe("SwapCatUpgradeable", function () {
       );
 
       // Admin-owner can transfer before unlockTime
-      await bridgeToken.transfer(swapCatUpgradeable.address, 200);
+      await bridgeToken.transfer(swapCatUpgradeable.address, tokenAmount);
       expect(await bridgeToken.balanceOf(swapCatUpgradeable.address)).to.equal(
-        200
+        tokenAmount
       );
 
       // Manipulate time to unlockTime
@@ -752,27 +762,32 @@ describe("SwapCatUpgradeable", function () {
       expect(await bridgeToken.balanceOf(swapCatUpgradeable.address)).to.equal(
         0
       );
-      expect(await bridgeToken.balanceOf(moderator.address)).to.equal(200);
+      expect(await bridgeToken.balanceOf(moderator.address)).to.equal(
+        tokenAmount
+      );
 
       // Transfer token to the contract a second time
-      await bridgeToken.transfer(swapCatUpgradeable.address, 300);
+      await bridgeToken.transfer(swapCatUpgradeable.address, tokenAmount);
       expect(await bridgeToken.balanceOf(swapCatUpgradeable.address)).to.equal(
-        300
+        tokenAmount
       );
-      // Moderator can withdraw tokens
+      // Admin can withdraw tokens
+      const oldAdminBalance = await bridgeToken.balanceOf(admin.address);
       await expect(
         swapCatUpgradeable.connect(admin).saveLostTokens(bridgeToken.address)
       )
         .to.emit(bridgeToken, "Transfer")
         .withArgs(
           swapCatUpgradeable.address,
-          moderator.address,
+          admin.address,
           await bridgeToken.balanceOf(swapCatUpgradeable.address)
         );
       expect(await bridgeToken.balanceOf(swapCatUpgradeable.address)).to.equal(
         0
       );
-      expect(await bridgeToken.balanceOf(moderator.address)).to.equal(500);
+      expect(await bridgeToken.balanceOf(admin.address)).to.equal(
+        oldAdminBalance.add(tokenAmount)
+      );
     });
 
     it("should not allow withdrawing by non-admin/moderator", async function () {
@@ -783,7 +798,7 @@ describe("SwapCatUpgradeable", function () {
       // User can not withdraw tokens
       await expect(
         swapCatUpgradeable.connect(user1).saveLostTokens(bridgeToken.address)
-      ).to.revertedWith(`only admin or moderator can move lost tokens`);
+      ).to.revertedWith(`caller is not moderator or admin`);
     });
 
     it("Should not be able to transfer ethers to the contract", async function () {
@@ -824,38 +839,73 @@ describe("SwapCatUpgradeable", function () {
       );
     });
   });
-  describe("7. Transfer moderator role", function () {
-    it("should not allow non-moderator to transfer moderator role", async function () {
+  describe("7. Admin can grant/revoke roles", function () {
+    it("Admin can grant moderator role", async function () {
       const { swapCatUpgradeable, admin, user1 } = await loadFixture(makeSuite);
+
       await expect(
-        swapCatUpgradeable.connect(admin).transferModerator(user1.address)
-      ).to.revertedWith(`Caller is not moderator`);
+        swapCatUpgradeable
+          .connect(admin)
+          .grantRole(keccak256(toUtf8Bytes("MODERATOR_ROLE")), user1.address)
+      )
+        .to.emit(swapCatUpgradeable, "RoleGranted")
+        .withArgs(
+          keccak256(toUtf8Bytes("MODERATOR_ROLE")),
+          user1.address,
+          admin.address
+        );
+
+      expect(
+        await swapCatUpgradeable.hasRole(
+          keccak256(toUtf8Bytes("MODERATOR_ROLE")),
+          user1.address
+        )
+      ).to.equal(true);
     });
 
-    it("should allow moderator to transfer moderator role", async function () {
-      const { swapCatUpgradeable, moderator, user1 } = await loadFixture(
+    it("Admin can revoke moderator role", async function () {
+      const { swapCatUpgradeable, admin, moderator } = await loadFixture(
         makeSuite
       );
+
       await expect(
-        swapCatUpgradeable.connect(moderator).transferModerator(user1.address)
+        swapCatUpgradeable
+          .connect(admin)
+          .revokeRole(
+            keccak256(toUtf8Bytes("MODERATOR_ROLE")),
+            moderator.address
+          )
       )
-        .to.emit(swapCatUpgradeable, "ModeratorTransferred")
-        .withArgs(moderator.address, user1.address);
+        .to.emit(swapCatUpgradeable, "RoleRevoked")
+        .withArgs(
+          keccak256(toUtf8Bytes("MODERATOR_ROLE")),
+          moderator.address,
+          admin.address
+        );
+
+      expect(
+        await swapCatUpgradeable.hasRole(
+          keccak256(toUtf8Bytes("MODERATOR_ROLE")),
+          moderator.address
+        )
+      ).to.equal(false);
     });
   });
 
-  // describe("8. Upgradeability", function () {
-  //   it("Should be able to upgrade by the upgrader admin", async function () {
-  //     const { swapCatUpgradeable } = await loadFixture(makeSuite);
-  //     const SwapCatUpgradeableV2 = await ethers.getContractFactory(
-  //       "SwapCatUpgradeableV2"
-  //     );
-  //     const swapCatUpgradeableV2 = (await upgrades.upgradeProxy(
-  //       swapCatUpgradeable.address,
-  //       SwapCatUpgradeableV2,
-  //       { kind: "uups" }
-  //     )) as SwapCatUpgradeableV2;
-  //     await swapCatUpgradeableV2.deployed();
-  //   });
-  // });
+  describe("8. Upgradeability", function () {
+    it("Should be able to upgrade by the upgrader admin", async function () {
+      const { swapCatUpgradeable } = await loadFixture(makeSuite);
+
+      const SwapCatUpgradeableV2 = await ethers.getContractFactory(
+        "SwapCatUpgradeableV2"
+      );
+
+      const swapCatUpgradeableV2 = (await upgrades.upgradeProxy(
+        swapCatUpgradeable.address,
+        SwapCatUpgradeableV2,
+        { kind: "uups" }
+      )) as SwapCatUpgradeableV2;
+      await swapCatUpgradeableV2.deployed();
+    });
+  });
 });
