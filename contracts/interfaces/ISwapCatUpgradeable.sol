@@ -197,6 +197,26 @@ interface ISwapCatUpgradeable {
    * @return The buyer token address
    * @return The seller address
    * @return The price
+   * @return The amount of the offer token
+   **/
+  function getInitialOffer(uint256 offerId)
+    external
+    view
+    returns (
+      address,
+      address,
+      address,
+      uint256,
+      uint256
+    );
+
+  /**
+   * @notice Returns the offer information
+   * @param offerId The offer Id
+   * @return The offer token address
+   * @return The buyer token address
+   * @return The seller address
+   * @return The price
    * @return The available balance
    **/
   function showOffer(uint256 offerId)

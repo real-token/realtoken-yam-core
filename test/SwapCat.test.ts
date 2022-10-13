@@ -416,45 +416,43 @@ describe("SwapCatUpgradeable", function () {
       ).to.be.revertedWith("Token is not whitelisted");
     });
 
-    it("Modify offer: seller should be able to modify the offer", async function () {
-      const { bridgeToken, usdcTokenTest, swapCatUpgradeable, user1 } =
+    it("Update offer: seller should be able to update the offer", async function () {
+      const { usdcTokenTest, bridgeToken, swapCatUpgradeable, user1 } =
         await loadFixture(makeSuiteWhitelistAndCreateOffer);
+
       await expect(
         swapCatUpgradeable
           .connect(user1)
-          .createOffer(
-            bridgeToken.address,
-            usdcTokenTest.address,
-            1,
-            100,
-            BigNumber.from("1000000000000000000000")
-          )
+          .updateOffer(1, 100, BigNumber.from("2000000000000000000000"))
       )
-        .to.emit(swapCatUpgradeable, "OfferCreated")
+        .to.emit(swapCatUpgradeable, "OfferUpdated")
         .withArgs(
-          bridgeToken.address,
-          usdcTokenTest.address,
           1,
-          100,
-          BigNumber.from("1000000000000000000000")
+          55000000, // old price
+          100, // new price
+          BigNumber.from("1000000000000000000000"), // old amount
+          BigNumber.from("2000000000000000000000") // new amount
         );
+
+      expect((await swapCatUpgradeable.getInitialOffer(1)).slice(0, 5)).to.eql([
+        bridgeToken.address,
+        usdcTokenTest.address,
+        user1.address,
+        BigNumber.from(100),
+        BigNumber.from("2000000000000000000000"),
+      ]);
     });
 
-    it("Modify offer: non-seller should not be able to modify the offer", async function () {
-      const { bridgeToken, usdcTokenTest, swapCatUpgradeable, user2 } =
-        await loadFixture(makeSuiteWhitelistAndCreateOffer);
+    it("Update offer: non-seller should not be able to update the offer", async function () {
+      const { swapCatUpgradeable, user2 } = await loadFixture(
+        makeSuiteWhitelistAndCreateOffer
+      );
 
       // Revert when user 2 modifies the price of the second offer, offerId = 1
       await expect(
         swapCatUpgradeable
           .connect(user2)
-          .createOffer(
-            bridgeToken.address,
-            usdcTokenTest.address,
-            1,
-            20,
-            BigNumber.from("1000000000000000000000")
-          )
+          .updateOffer(1, 20, BigNumber.from("1000000000000000000000"))
       ).to.revertedWith("only the seller can change offer");
     });
 

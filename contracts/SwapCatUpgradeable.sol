@@ -107,22 +107,15 @@ contract SwapCatUpgradeable is
     onlyWhitelistedToken(_buyerToken)
   {
     // require(
-    //   _isTransferValid(_offerToken, msg.sender, msg.sender, 1),
+    //   _isTransferValid(_offerToken, msg.sender, msg.sender, _amount),
     //   "Seller can not transfer tokens"
     // );
     // if no offerId is given a new offer is made, if offerId is given only the offers price is changed if owner matches
-    if (_offerId == 0) {
-      _offerId = offerCount;
-      offerCount++;
-      sellers[_offerId] = msg.sender;
-      offerTokens[_offerId] = _offerToken;
-      buyerTokens[_offerId] = _buyerToken;
-    } else {
-      require(
-        sellers[_offerId] == msg.sender,
-        "only the seller can change offer"
-      );
-    }
+    _offerId = offerCount;
+    offerCount++;
+    sellers[_offerId] = msg.sender;
+    offerTokens[_offerId] = _offerToken;
+    buyerTokens[_offerId] = _buyerToken;
     prices[_offerId] = _price;
     amounts[_offerId] = _amount;
 
@@ -228,6 +221,28 @@ contract SwapCatUpgradeable is
       tokenInterface.decimals(),
       tokenInterface.symbol(),
       tokenInterface.name()
+    );
+  }
+
+  /// @inheritdoc	ISwapCatUpgradeable
+  function getInitialOffer(uint256 offerId)
+    public
+    view
+    override
+    returns (
+      address,
+      address,
+      address,
+      uint256,
+      uint256
+    )
+  {
+    return (
+      offerTokens[offerId],
+      buyerTokens[offerId],
+      sellers[offerId],
+      prices[offerId],
+      amounts[offerId]
     );
   }
 
