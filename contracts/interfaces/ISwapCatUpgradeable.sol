@@ -70,14 +70,12 @@ interface ISwapCatUpgradeable {
    * @notice Creates a new offer or updates an existing offer (call this again with the changed price + offerId)
    * @param offerToken The address of the token to be sold
    * @param buyerToken The address of the token to be bought
-   * @param offerId The Id of the offer (0 if new offer)
    * @param price The price in base units of the token to be sold
    * @param amount The amount of the offer token
    **/
   function createOffer(
     address offerToken,
     address buyerToken,
-    uint256 offerId,
     uint256 price,
     uint256 amount
   ) external;
@@ -86,7 +84,6 @@ interface ISwapCatUpgradeable {
    * @notice Creates a new offer or updates an existing offer with permit (call this again with the changed price + offerId)
    * @param offerToken The address of the token to be sold
    * @param buyerToken The address of the token to be bought
-   * @param offerId The Id of the offer (0 if new offer)
    * @param price The price in base units of the token to be sold
    * @param amount The amount to be permitted
    * @param deadline The deadline of the permit
@@ -97,7 +94,6 @@ interface ISwapCatUpgradeable {
   function createOfferWithPermit(
     address offerToken,
     address buyerToken,
-    uint256 offerId,
     uint256 price,
     uint256 amount,
     uint256 deadline,

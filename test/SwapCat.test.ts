@@ -231,7 +231,6 @@ describe("SwapCatUpgradeable", function () {
       .createOffer(
         bridgeToken.address,
         usdcTokenTest.address,
-        0,
         50000000,
         BigNumber.from("1000000000000000000000")
       );
@@ -242,7 +241,6 @@ describe("SwapCatUpgradeable", function () {
       .createOffer(
         bridgeToken.address,
         usdcTokenTest.address,
-        0,
         55000000,
         BigNumber.from("1000000000000000000000")
       );
@@ -368,7 +366,6 @@ describe("SwapCatUpgradeable", function () {
         swapCatUpgradeable.createOffer(
           bridgeToken.address,
           usdcTokenTest.address,
-          0,
           10,
           BigNumber.from("1000000000000000000000")
         )
@@ -386,7 +383,6 @@ describe("SwapCatUpgradeable", function () {
         swapCatUpgradeable.createOffer(
           bridgeToken.address,
           usdcTokenTest.address,
-          0,
           15,
           BigNumber.from("1000000000000000000000")
         )
@@ -409,7 +405,6 @@ describe("SwapCatUpgradeable", function () {
         swapCatUpgradeable.createOffer(
           bridgeToken.address,
           usdcTokenTest.address,
-          0,
           10,
           BigNumber.from("1000000000000000000000")
         )
@@ -624,7 +619,6 @@ describe("SwapCatUpgradeable", function () {
           .createOffer(
             bridgeToken.address,
             usdcTokenTest.address,
-            0,
             60000000,
             BigNumber.from("1000000000000000000000")
           )

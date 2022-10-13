@@ -87,57 +87,20 @@ contract SwapCatUpgradeable is
     return whitelistedTokens[token_];
   }
 
-  /**
-   * @notice Creates a new offer or updates an existing offer (call this again with the changed price + offerId)
-   * @param _offerToken The address of the token to be sold
-   * @param _buyerToken The address of the token to be bought
-   * @param _offerId The Id of the offer (0 if new offer)
-   * @param _price The price in base units of the token to be sold
-   * @param _amount The amount of tokens to be sold
-   **/
-  function _createOffer(
-    address _offerToken,
-    address _buyerToken,
-    uint256 _offerId,
-    uint256 _price,
-    uint256 _amount
-  )
-    private
-    onlyWhitelistedToken(_offerToken)
-    onlyWhitelistedToken(_buyerToken)
-  {
-    // require(
-    //   _isTransferValid(_offerToken, msg.sender, msg.sender, _amount),
-    //   "Seller can not transfer tokens"
-    // );
-    // if no offerId is given a new offer is made, if offerId is given only the offers price is changed if owner matches
-    _offerId = offerCount;
-    offerCount++;
-    sellers[_offerId] = msg.sender;
-    offerTokens[_offerId] = _offerToken;
-    buyerTokens[_offerId] = _buyerToken;
-    prices[_offerId] = _price;
-    amounts[_offerId] = _amount;
-
-    emit OfferCreated(_offerToken, _buyerToken, _offerId, _price, _amount);
-  }
-
   /// @inheritdoc	ISwapCatUpgradeable
   function createOffer(
     address offerToken,
     address buyerToken,
-    uint256 offerId,
     uint256 price,
     uint256 amount
   ) external override {
-    _createOffer(offerToken, buyerToken, offerId, price, amount);
+    _createOffer(offerToken, buyerToken, price, amount);
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
   function createOfferWithPermit(
     address offerToken,
     address buyerToken,
-    uint256 offerId,
     uint256 price,
     uint256 amount,
     uint256 deadline,
@@ -145,7 +108,7 @@ contract SwapCatUpgradeable is
     bytes32 r,
     bytes32 s
   ) external override {
-    _createOffer(offerToken, buyerToken, offerId, price, amount);
+    _createOffer(offerToken, buyerToken, price, amount);
     IBridgeToken(offerToken).permit(
       msg.sender,
       address(this),
@@ -155,6 +118,39 @@ contract SwapCatUpgradeable is
       r,
       s
     );
+  }
+
+  /// @inheritdoc	ISwapCatUpgradeable
+  function buy(
+    uint256 offerId,
+    uint256 price,
+    uint256 amount
+  ) external override {
+    _buy(offerId, price, amount);
+  }
+
+  /// @inheritdoc	ISwapCatUpgradeable
+  function buyWithPermit(
+    uint256 offerId,
+    uint256 price,
+    uint256 amount,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external override {
+    uint256 buyerTokenAmount = (price * amount) /
+      (uint256(10)**IERC20(offerTokens[offerId]).decimals());
+    IBridgeToken(buyerTokens[offerId]).permit(
+      msg.sender,
+      address(this),
+      buyerTokenAmount,
+      deadline,
+      v,
+      r,
+      s
+    );
+    _buy(offerId, price, amount);
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
@@ -299,6 +295,52 @@ contract SwapCatUpgradeable is
       (uint256(10)**offerTokenInterface.decimals());
   }
 
+  /// @inheritdoc	ISwapCatUpgradeable
+  function saveLostTokens(address token)
+    external
+    override
+    onlyModeratorOrAdmin
+  {
+    IERC20 tokenInterface = IERC20(token);
+    tokenInterface.transfer(
+      msg.sender,
+      tokenInterface.balanceOf(address(this))
+    );
+  }
+
+  /**
+   * @notice Creates a new offer or updates an existing offer (call this again with the changed price + offerId)
+   * @param _offerToken The address of the token to be sold
+   * @param _buyerToken The address of the token to be bought
+   * @param _price The price in base units of the token to be sold
+   * @param _amount The amount of tokens to be sold
+   **/
+  function _createOffer(
+    address _offerToken,
+    address _buyerToken,
+    uint256 _price,
+    uint256 _amount
+  )
+    private
+    onlyWhitelistedToken(_offerToken)
+    onlyWhitelistedToken(_buyerToken)
+  {
+    // require(
+    //   _isTransferValid(_offerToken, msg.sender, msg.sender, _amount),
+    //   "Seller can not transfer tokens"
+    // );
+    // if no offerId is given a new offer is made, if offerId is given only the offers price is changed if owner matches
+    uint256 _offerId = offerCount;
+    offerCount++;
+    sellers[_offerId] = msg.sender;
+    offerTokens[_offerId] = _offerToken;
+    buyerTokens[_offerId] = _buyerToken;
+    prices[_offerId] = _price;
+    amounts[_offerId] = _amount;
+
+    emit OfferCreated(_offerToken, _buyerToken, _offerId, _price, _amount);
+  }
+
   /**
    * @notice Accepts an existing offer
    * @notice The buyer must bring the price correctly to ensure no frontrunning / changed offer
@@ -367,50 +409,6 @@ contract SwapCatUpgradeable is
       buyerToken,
       _price,
       _amount
-    );
-  }
-
-  function buy(
-    uint256 offerId,
-    uint256 price,
-    uint256 amount
-  ) external override {
-    _buy(offerId, price, amount);
-  }
-
-  function buyWithPermit(
-    uint256 offerId,
-    uint256 price,
-    uint256 amount,
-    uint256 deadline,
-    uint8 v,
-    bytes32 r,
-    bytes32 s
-  ) external override {
-    uint256 buyerTokenAmount = (price * amount) /
-      (uint256(10)**IERC20(offerTokens[offerId]).decimals());
-    IBridgeToken(buyerTokens[offerId]).permit(
-      msg.sender,
-      address(this),
-      buyerTokenAmount,
-      deadline,
-      v,
-      r,
-      s
-    );
-    _buy(offerId, price, amount);
-  }
-
-  /// @inheritdoc	ISwapCatUpgradeable
-  function saveLostTokens(address token)
-    external
-    override
-    onlyModeratorOrAdmin
-  {
-    IERC20 tokenInterface = IERC20(token);
-    tokenInterface.transfer(
-      msg.sender,
-      tokenInterface.balanceOf(address(this))
     );
   }
 
