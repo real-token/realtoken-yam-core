@@ -15,6 +15,7 @@ contract SwapCatUpgradeable is
   bytes32 public constant MODERATOR_ROLE = keccak256("MODERATOR_ROLE");
 
   mapping(uint256 => uint256) internal prices;
+  mapping(uint256 => uint256) internal amounts;
   mapping(uint256 => address) internal offerTokens;
   mapping(uint256 => address) internal buyerTokens;
   mapping(uint256 => address) internal sellers;
@@ -123,6 +124,7 @@ contract SwapCatUpgradeable is
       );
     }
     prices[_offerId] = _price;
+    amounts[_offerId] = _amount;
 
     emit OfferCreated(_offerToken, _buyerToken, _offerId, _price, _amount);
   }
@@ -169,8 +171,15 @@ contract SwapCatUpgradeable is
     uint256 amount
   ) external override {
     require(sellers[offerId] == msg.sender, "only the seller can change offer");
-    emit OfferUpdated(offerId, prices[offerId], price, amount);
+    emit OfferUpdated(
+      offerId,
+      prices[offerId],
+      price,
+      amounts[offerId],
+      amount
+    );
     prices[offerId] = price;
+    amounts[offerId] = amount;
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
@@ -180,6 +189,7 @@ contract SwapCatUpgradeable is
     delete offerTokens[offerId];
     delete buyerTokens[offerId];
     delete prices[offerId];
+    delete amounts[offerId];
     emit OfferDeleted(offerId);
   }
 
@@ -193,6 +203,7 @@ contract SwapCatUpgradeable is
     delete offerTokens[offerId];
     delete buyerTokens[offerId];
     delete prices[offerId];
+    delete amounts[offerId];
     emit OfferDeleted(offerId);
   }
 
@@ -202,7 +213,7 @@ contract SwapCatUpgradeable is
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
-  function tokenInfo(address tokenaddr)
+  function tokenInfo(address tokenAddr)
     public
     view
     override
@@ -212,8 +223,12 @@ contract SwapCatUpgradeable is
       string memory
     )
   {
-    IERC20 tokeni = IERC20(tokenaddr);
-    return (tokeni.decimals(), tokeni.symbol(), tokeni.name());
+    IERC20 tokenInterface = IERC20(tokenAddr);
+    return (
+      tokenInterface.decimals(),
+      tokenInterface.symbol(),
+      tokenInterface.name()
+    );
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
@@ -229,17 +244,22 @@ contract SwapCatUpgradeable is
       uint256
     )
   {
-    IERC20 offerTokeni = IERC20(offerTokens[offerId]);
+    IERC20 offerTokenInterface = IERC20(offerTokens[offerId]);
 
     // get offerTokens balance and allowance, whichever is lower is the available amount
-    uint256 availablebalance = offerTokeni.balanceOf(sellers[offerId]);
-    uint256 availableallow = offerTokeni.allowance(
+    uint256 availableBalance = offerTokenInterface.balanceOf(sellers[offerId]);
+    uint256 availableAllow = offerTokenInterface.allowance(
       sellers[offerId],
       address(this)
     );
+    uint256 availableAmount = amounts[offerId];
 
-    if (availableallow < availablebalance) {
-      availablebalance = availableallow;
+    if (availableBalance < availableAmount) {
+      availableAmount = availableBalance;
+    }
+
+    if (availableAllow < availableAmount) {
+      availableAmount = availableAllow;
     }
 
     return (
@@ -247,7 +267,7 @@ contract SwapCatUpgradeable is
       buyerTokens[offerId],
       sellers[offerId],
       prices[offerId],
-      availablebalance
+      availableAmount
     );
   }
 
@@ -258,8 +278,10 @@ contract SwapCatUpgradeable is
     override
     returns (uint256)
   {
-    IERC20 offerTokeni = IERC20(offerTokens[offerId]);
-    return (amount * prices[offerId]) / (uint256(10)**offerTokeni.decimals());
+    IERC20 offerTokenInterface = IERC20(offerTokens[offerId]);
+    return
+      (amount * prices[offerId]) /
+      (uint256(10)**offerTokenInterface.decimals());
   }
 
   /**
@@ -291,6 +313,7 @@ contract SwapCatUpgradeable is
       "transfer is not valid"
     );
     // calculate the price of the order
+    require(_amount <= amounts[_offerId], "amount too high");
     require(
       _amount * _price > (uint256(10)**offerTokenInterface.decimals()),
       "amount too low"
@@ -299,8 +322,11 @@ contract SwapCatUpgradeable is
       (uint256(10)**offerTokenInterface.decimals());
 
     // some old erc20 tokens give no return value so we must work around by getting their balance before and after the exchange
-    uint256 oldbuyerbalance = buyerTokenInterface.balanceOf(msg.sender);
-    uint256 oldsellerbalance = offerTokenInterface.balanceOf(seller);
+    uint256 oldBuyerBalance = buyerTokenInterface.balanceOf(msg.sender);
+    uint256 oldSellerBalance = offerTokenInterface.balanceOf(seller);
+
+    // Update amount in mapping
+    amounts[_offerId] = amounts[_offerId] - _amount;
 
     // finally do the exchange
     buyerTokenInterface.transferFrom(msg.sender, seller, buyerTokenAmount);
@@ -310,11 +336,11 @@ contract SwapCatUpgradeable is
     // we do not check for exact amounts since some tokens behave differently with fees, burnings, etc
     // we assume if both balances are higher than before all is good
     require(
-      oldbuyerbalance > buyerTokenInterface.balanceOf(msg.sender),
+      oldBuyerBalance > buyerTokenInterface.balanceOf(msg.sender),
       "buyer error"
     );
     require(
-      oldsellerbalance > offerTokenInterface.balanceOf(seller),
+      oldSellerBalance > offerTokenInterface.balanceOf(seller),
       "seller error"
     );
 

@@ -30,14 +30,16 @@ interface ISwapCatUpgradeable {
    * @dev Emitted after an offer is updated
    * @param offerId the Id of the offer
    * @param oldPrice the old price of the token
-   * @param newPrice the old price of the token
-   * @param amount the amount of tokens
+   * @param newPrice the new price of the token
+   * @param oldAmount the old amount of tokens
+   * @param newAmount the new amount of tokens
    **/
   event OfferUpdated(
     uint256 indexed offerId,
     uint256 oldPrice,
-    uint256 newPrice,
-    uint256 amount
+    uint256 indexed newPrice,
+    uint256 oldAmount,
+    uint256 indexed newAmount
   );
 
   /**
