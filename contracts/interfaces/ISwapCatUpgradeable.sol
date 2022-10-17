@@ -67,6 +67,13 @@ interface ISwapCatUpgradeable {
   );
 
   /**
+   * @dev Emitted after an offer is deleted
+   * @param oldFee the old fee basic points
+   * @param newFee the new fee basic points
+   **/
+  event FeeChanged(uint256 indexed oldFee, uint256 indexed newFee);
+
+  /**
    * @notice Creates a new offer or updates an existing offer (call this again with the changed price + offerId)
    * @param offerToken The address of the token to be sold
    * @param buyerToken The address of the token to be bought
@@ -240,6 +247,7 @@ interface ISwapCatUpgradeable {
   /**
    * @notice Whitelist or unwhitelist a token
    * @param tokens The token addresses
+   * @param status The token whitelist status, true for whitelisted and false for unwhitelisted
    **/
   function toggleWhitelist(address[] calldata tokens, bool[] calldata status)
     external;
@@ -251,6 +259,15 @@ interface ISwapCatUpgradeable {
    **/
   function isWhitelisted(address token) external view returns (bool);
 
-  // in case someone wrongfully directly sends erc20 to this contract address, the moderator can move them out
+  /**
+   * @notice In case someone wrongfully directly sends erc20 to this contract address, the moderator can move them out
+   * @param token The token address
+   **/
   function saveLostTokens(address token) external;
+
+  /**
+   * @notice Admin sets the fee
+   * @param fee The new fee basic points
+   **/
+  function setFee(uint256 fee) external;
 }

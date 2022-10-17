@@ -5,10 +5,12 @@ import { IERC20 } from "./interfaces/IERC20.sol";
 import "./interfaces/ISwapCatUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 contract SwapCatUpgradeable is
   AccessControlUpgradeable,
   UUPSUpgradeable,
+  ReentrancyGuardUpgradeable,
   ISwapCatUpgradeable
 {
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
@@ -23,6 +25,7 @@ contract SwapCatUpgradeable is
   uint256 internal offerCount;
   address public admin; // admin address
   address public moderator; // moderator address, can move stuck funds
+  uint256 public fee; // fee in basis points
 
   /// @notice the initialize function to execute only once during the contract deployment
   /// @param admin_ address of the default admin account: whitelist tokens, delete frozen offers, upgrade the contract
@@ -36,6 +39,7 @@ contract SwapCatUpgradeable is
     _grantRole(MODERATOR_ROLE, moderator_);
     admin = admin_;
     moderator = moderator_;
+    __ReentrancyGuard_init();
   }
 
   /// @notice The admin (with upgrader role) uses this function to update the contract
@@ -306,6 +310,12 @@ contract SwapCatUpgradeable is
       msg.sender,
       tokenInterface.balanceOf(address(this))
     );
+  }
+
+  /// @inheritdoc	ISwapCatUpgradeable
+  function setFee(uint256 fee_) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+    emit FeeChanged(fee, fee_);
+    fee = fee_;
   }
 
   /**
