@@ -16,10 +16,11 @@ import { SwapCatUpgradeable } from "../typechain/SwapCatUpgradeable";
 import { SwapCatUpgradeableV2 } from "../typechain/SwapCatUpgradeableV2";
 
 describe("SwapCatUpgradeable", function () {
+  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
   async function makeSuite() {
     const [admin, moderator, user1, user2]: SignerWithAddress[] =
       await ethers.getSigners();
-    const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
     const USDCTokenTest = await ethers.getContractFactory("USDCTokenTest");
     const RuleEngineFactory = await ethers.getContractFactory("RuleEngine");
     const ProcessorFactory = await ethers.getContractFactory("Processor");
@@ -231,6 +232,7 @@ describe("SwapCatUpgradeable", function () {
       .createOffer(
         bridgeToken.address,
         usdcTokenTest.address,
+        ZERO_ADDRESS,
         50000000,
         BigNumber.from("1000000000000000000000")
       );
@@ -241,6 +243,7 @@ describe("SwapCatUpgradeable", function () {
       .createOffer(
         bridgeToken.address,
         usdcTokenTest.address,
+        ZERO_ADDRESS,
         55000000,
         BigNumber.from("1000000000000000000000")
       );
@@ -349,7 +352,7 @@ describe("SwapCatUpgradeable", function () {
   // Test 3: Create, modify, delete offer
   describe("3. Create/Modify/Delete Offer", function () {
     it("Create Offer: should create an offer when both tokens are whitelisted", async function () {
-      const { bridgeToken, usdcTokenTest, swapCatUpgradeable } =
+      const { bridgeToken, usdcTokenTest, swapCatUpgradeable, admin } =
         await loadFixture(makeSuite);
 
       await expect(
@@ -366,6 +369,7 @@ describe("SwapCatUpgradeable", function () {
         swapCatUpgradeable.createOffer(
           bridgeToken.address,
           usdcTokenTest.address,
+          ZERO_ADDRESS,
           10,
           BigNumber.from("1000000000000000000000")
         )
@@ -374,6 +378,8 @@ describe("SwapCatUpgradeable", function () {
         .withArgs(
           bridgeToken.address,
           usdcTokenTest.address,
+          admin.address,
+          ZERO_ADDRESS,
           0,
           10,
           BigNumber.from("1000000000000000000000")
@@ -383,6 +389,7 @@ describe("SwapCatUpgradeable", function () {
         swapCatUpgradeable.createOffer(
           bridgeToken.address,
           usdcTokenTest.address,
+          ZERO_ADDRESS,
           15,
           BigNumber.from("1000000000000000000000")
         )
@@ -391,6 +398,8 @@ describe("SwapCatUpgradeable", function () {
         .withArgs(
           bridgeToken.address,
           usdcTokenTest.address,
+          admin.address,
+          ZERO_ADDRESS,
           1,
           15,
           BigNumber.from("1000000000000000000000")
@@ -405,6 +414,7 @@ describe("SwapCatUpgradeable", function () {
         swapCatUpgradeable.createOffer(
           bridgeToken.address,
           usdcTokenTest.address,
+          ZERO_ADDRESS,
           10,
           BigNumber.from("1000000000000000000000")
         )
@@ -429,10 +439,11 @@ describe("SwapCatUpgradeable", function () {
           BigNumber.from("2000000000000000000000") // new amount
         );
 
-      expect((await swapCatUpgradeable.getInitialOffer(1)).slice(0, 5)).to.eql([
+      expect((await swapCatUpgradeable.getInitialOffer(1)).slice(0, 6)).to.eql([
         bridgeToken.address,
         usdcTokenTest.address,
         user1.address,
+        ZERO_ADDRESS,
         BigNumber.from(100),
         BigNumber.from("2000000000000000000000"),
       ]);
@@ -531,16 +542,17 @@ describe("SwapCatUpgradeable", function () {
         await loadFixture(makeSuiteWhitelistAndCreateOffer);
 
       // Test function: showOffer (offerToken buyerToken, sellerAddress, price)
-      expect((await swapCatUpgradeable.showOffer(0)).slice(0, 4)).to.eql([
+      expect((await swapCatUpgradeable.showOffer(0)).slice(0, 5)).to.eql([
         bridgeToken.address,
         usdcTokenTest.address,
         user1.address,
+        ZERO_ADDRESS,
         BigNumber.from("50000000"),
       ]);
 
       // Test function: showOffer (availablebalance)
       // When allowance is inferior than user1 balance, the availablebalance is equal to the allowance
-      expect((await swapCatUpgradeable.showOffer(0))[4]).to.equal(
+      expect((await swapCatUpgradeable.showOffer(0))[5]).to.equal(
         await bridgeToken.allowance(user1.address, swapCatUpgradeable.address)
       );
       // When allowance is inferior than user1 balance
@@ -559,7 +571,7 @@ describe("SwapCatUpgradeable", function () {
           BigNumber.from(await bridgeToken.balanceOf(user1.address)).add(1)
         );
 
-      expect((await swapCatUpgradeable.showOffer(0))[4]).to.equal(
+      expect((await swapCatUpgradeable.showOffer(0))[5]).to.equal(
         await bridgeToken.balanceOf(user1.address)
       );
     });
@@ -619,6 +631,7 @@ describe("SwapCatUpgradeable", function () {
           .createOffer(
             bridgeToken.address,
             usdcTokenTest.address,
+            ZERO_ADDRESS,
             60000000,
             BigNumber.from("1000000000000000000000")
           )
@@ -627,6 +640,8 @@ describe("SwapCatUpgradeable", function () {
         .withArgs(
           bridgeToken.address,
           usdcTokenTest.address,
+          user1.address,
+          ZERO_ADDRESS,
           0,
           60000000,
           BigNumber.from("1000000000000000000000")

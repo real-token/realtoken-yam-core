@@ -21,6 +21,8 @@ interface ISwapCatUpgradeable {
   event OfferCreated(
     address indexed offerToken,
     address indexed buyerToken,
+    address seller,
+    address buyer,
     uint256 indexed offerId,
     uint256 price,
     uint256 amount
@@ -77,12 +79,14 @@ interface ISwapCatUpgradeable {
    * @notice Creates a new offer or updates an existing offer (call this again with the changed price + offerId)
    * @param offerToken The address of the token to be sold
    * @param buyerToken The address of the token to be bought
+   * @param buyer The address of the allowed buyer (zero address means anyone can buy)
    * @param price The price in base units of the token to be sold
    * @param amount The amount of the offer token
    **/
   function createOffer(
     address offerToken,
     address buyerToken,
+    address buyer,
     uint256 price,
     uint256 amount
   ) external;
@@ -91,6 +95,7 @@ interface ISwapCatUpgradeable {
    * @notice Creates a new offer or updates an existing offer with permit (call this again with the changed price + offerId)
    * @param offerToken The address of the token to be sold
    * @param buyerToken The address of the token to be bought
+   * @param buyer The address of the allowed buyer (zero address means anyone can buy)
    * @param price The price in base units of the token to be sold
    * @param amount The amount to be permitted
    * @param deadline The deadline of the permit
@@ -101,6 +106,7 @@ interface ISwapCatUpgradeable {
   function createOfferWithPermit(
     address offerToken,
     address buyerToken,
+    address buyer,
     uint256 price,
     uint256 amount,
     uint256 deadline,
@@ -108,6 +114,22 @@ interface ISwapCatUpgradeable {
     bytes32 r,
     bytes32 s
   ) external;
+
+  // /**
+  //  * @notice Creates a new offer or updates an existing offer (call this again with the changed price + offerId)
+  //  * @param offerToken The address of the token to be sold
+  //  * @param buyerToken The address of the token to be bought
+  //  * @param buyer The address of the buyer
+  //  * @param price The price in base units of the token to be sold
+  //  * @param amount The amount of the offer token
+  //  **/
+  // function createOfferPrivate(
+  //   address offerToken,
+  //   address buyerToken,
+  //   address buyer,
+  //   uint256 price,
+  //   uint256 amount
+  // ) external;
 
   /**
    * @notice Updates an existing offer (call this again with the changed price + offerId)
@@ -199,6 +221,7 @@ interface ISwapCatUpgradeable {
    * @return The offer token address
    * @return The buyer token address
    * @return The seller address
+   * @return The buyer address
    * @return The price
    * @return The amount of the offer token
    **/
@@ -206,6 +229,7 @@ interface ISwapCatUpgradeable {
     external
     view
     returns (
+      address,
       address,
       address,
       address,
@@ -219,6 +243,7 @@ interface ISwapCatUpgradeable {
    * @return The offer token address
    * @return The buyer token address
    * @return The seller address
+   * @return The buyer address
    * @return The price
    * @return The available balance
    **/
@@ -226,6 +251,7 @@ interface ISwapCatUpgradeable {
     external
     view
     returns (
+      address,
       address,
       address,
       address,

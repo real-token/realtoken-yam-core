@@ -21,6 +21,7 @@ contract SwapCatUpgradeable is
   mapping(uint256 => address) internal offerTokens;
   mapping(uint256 => address) internal buyerTokens;
   mapping(uint256 => address) internal sellers;
+  mapping(uint256 => address) internal buyers;
   mapping(address => bool) internal whitelistedTokens;
   uint256 internal offerCount;
   address public admin; // admin address
@@ -95,16 +96,18 @@ contract SwapCatUpgradeable is
   function createOffer(
     address offerToken,
     address buyerToken,
+    address buyer,
     uint256 price,
     uint256 amount
   ) external override {
-    _createOffer(offerToken, buyerToken, price, amount);
+    _createOffer(offerToken, buyerToken, buyer, price, amount);
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
   function createOfferWithPermit(
     address offerToken,
     address buyerToken,
+    address buyer,
     uint256 price,
     uint256 amount,
     uint256 deadline,
@@ -112,7 +115,7 @@ contract SwapCatUpgradeable is
     bytes32 r,
     bytes32 s
   ) external override {
-    _createOffer(offerToken, buyerToken, price, amount);
+    _createOffer(offerToken, buyerToken, buyer, price, amount);
     IBridgeToken(offerToken).permit(
       msg.sender,
       address(this),
@@ -179,6 +182,7 @@ contract SwapCatUpgradeable is
   function deleteOffer(uint256 offerId) external override {
     require(sellers[offerId] == msg.sender, "only the seller can delete offer");
     delete sellers[offerId];
+    delete buyers[offerId];
     delete offerTokens[offerId];
     delete buyerTokens[offerId];
     delete prices[offerId];
@@ -193,6 +197,7 @@ contract SwapCatUpgradeable is
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
     delete sellers[offerId];
+    delete buyers[offerId];
     delete offerTokens[offerId];
     delete buyerTokens[offerId];
     delete prices[offerId];
@@ -233,6 +238,7 @@ contract SwapCatUpgradeable is
       address,
       address,
       address,
+      address,
       uint256,
       uint256
     )
@@ -241,6 +247,7 @@ contract SwapCatUpgradeable is
       offerTokens[offerId],
       buyerTokens[offerId],
       sellers[offerId],
+      buyers[offerId],
       prices[offerId],
       amounts[offerId]
     );
@@ -255,15 +262,18 @@ contract SwapCatUpgradeable is
       address,
       address,
       address,
+      address,
       uint256,
       uint256
     )
   {
-    IERC20 offerTokenInterface = IERC20(offerTokens[offerId]);
+    // IERC20 offerTokenInterface = IERC20(offerTokens[offerId]);
 
     // get offerTokens balance and allowance, whichever is lower is the available amount
-    uint256 availableBalance = offerTokenInterface.balanceOf(sellers[offerId]);
-    uint256 availableAllow = offerTokenInterface.allowance(
+    uint256 availableBalance = IERC20(offerTokens[offerId]).balanceOf(
+      sellers[offerId]
+    );
+    uint256 availableAllow = IERC20(offerTokens[offerId]).allowance(
       sellers[offerId],
       address(this)
     );
@@ -281,6 +291,7 @@ contract SwapCatUpgradeable is
       offerTokens[offerId],
       buyerTokens[offerId],
       sellers[offerId],
+      buyers[offerId],
       prices[offerId],
       availableAmount
     );
@@ -328,6 +339,7 @@ contract SwapCatUpgradeable is
   function _createOffer(
     address _offerToken,
     address _buyerToken,
+    address _buyer,
     uint256 _price,
     uint256 _amount
   )
@@ -342,13 +354,24 @@ contract SwapCatUpgradeable is
     // if no offerId is given a new offer is made, if offerId is given only the offers price is changed if owner matches
     uint256 _offerId = offerCount;
     offerCount++;
+    if (_buyer != address(0)) {
+      buyers[_offerId] = _buyer;
+    }
     sellers[_offerId] = msg.sender;
     offerTokens[_offerId] = _offerToken;
     buyerTokens[_offerId] = _buyerToken;
     prices[_offerId] = _price;
     amounts[_offerId] = _amount;
 
-    emit OfferCreated(_offerToken, _buyerToken, _offerId, _price, _amount);
+    emit OfferCreated(
+      _offerToken,
+      _buyerToken,
+      msg.sender,
+      _buyer,
+      _offerId,
+      _price,
+      _amount
+    );
   }
 
   /**
@@ -364,6 +387,10 @@ contract SwapCatUpgradeable is
     uint256 _price,
     uint256 _amount
   ) private {
+    if (buyers[_offerId] != address(0)) {
+      require(buyers[_offerId] == msg.sender, "private offer");
+    }
+
     address seller = sellers[_offerId];
     address offerToken = offerTokens[_offerId];
     address buyerToken = buyerTokens[_offerId];
