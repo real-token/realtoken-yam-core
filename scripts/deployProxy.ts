@@ -20,6 +20,12 @@ async function main() {
   console.log(`Proxy address deployed: ${swapCatDeployed.address}`);
   console.log(`Implementation address deployed: ${implAddress}`);
 
+  function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  await sleep(20000); // wait for 20s to have the contract propagated before verifying
+
   try {
     await run("verify:verify", {
       address: implAddress,

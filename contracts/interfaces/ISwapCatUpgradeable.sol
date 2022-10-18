@@ -8,7 +8,7 @@ interface ISwapCatUpgradeable {
    * @dev Emitted after an offer is updated
    * @param tokens the token addresses
    **/
-  event TokenWhitelistToggled(address[] tokens, bool[] status);
+  event TokenWhitelistToggled(address[] indexed tokens, bool[] indexed status);
 
   /**
    * @dev Emitted after an offer is created
@@ -21,6 +21,8 @@ interface ISwapCatUpgradeable {
   event OfferCreated(
     address indexed offerToken,
     address indexed buyerToken,
+    address seller,
+    address buyer,
     uint256 indexed offerId,
     uint256 price,
     uint256 amount
@@ -29,10 +31,18 @@ interface ISwapCatUpgradeable {
   /**
    * @dev Emitted after an offer is updated
    * @param offerId the Id of the offer
-   * @param price the price in baseunits of the token you want to sell
-   * @param amount the amount of tokens you want to sell
+   * @param oldPrice the old price of the token
+   * @param newPrice the new price of the token
+   * @param oldAmount the old amount of tokens
+   * @param newAmount the new amount of tokens
    **/
-  event OfferUpdated(uint256 indexed offerId, uint256 price, uint256 amount);
+  event OfferUpdated(
+    uint256 indexed offerId,
+    uint256 oldPrice,
+    uint256 indexed newPrice,
+    uint256 oldAmount,
+    uint256 indexed newAmount
+  );
 
   /**
    * @dev Emitted after an offer is deleted
@@ -52,32 +62,31 @@ interface ISwapCatUpgradeable {
     uint256 indexed offerId,
     address indexed seller,
     address indexed buyer,
+    address offerToken,
+    address buyerToken,
     uint256 price,
     uint256 amount
   );
 
   /**
-   * @dev Emitted after the moderator right is transferred
-   * @param oldModerator the address of old moderator
-   * @param newModerator the address of new moderator
+   * @dev Emitted after an offer is deleted
+   * @param oldFee the old fee basic points
+   * @param newFee the new fee basic points
    **/
-  event ModeratorTransferred(
-    address indexed oldModerator,
-    address indexed newModerator
-  );
+  event FeeChanged(uint256 indexed oldFee, uint256 indexed newFee);
 
   /**
    * @notice Creates a new offer or updates an existing offer (call this again with the changed price + offerId)
    * @param offerToken The address of the token to be sold
    * @param buyerToken The address of the token to be bought
-   * @param offerId The Id of the offer (0 if new offer)
+   * @param buyer The address of the allowed buyer (zero address means anyone can buy)
    * @param price The price in base units of the token to be sold
    * @param amount The amount of the offer token
    **/
   function createOffer(
     address offerToken,
     address buyerToken,
-    uint256 offerId,
+    address buyer,
     uint256 price,
     uint256 amount
   ) external;
@@ -86,7 +95,7 @@ interface ISwapCatUpgradeable {
    * @notice Creates a new offer or updates an existing offer with permit (call this again with the changed price + offerId)
    * @param offerToken The address of the token to be sold
    * @param buyerToken The address of the token to be bought
-   * @param offerId The Id of the offer (0 if new offer)
+   * @param buyer The address of the allowed buyer (zero address means anyone can buy)
    * @param price The price in base units of the token to be sold
    * @param amount The amount to be permitted
    * @param deadline The deadline of the permit
@@ -97,7 +106,7 @@ interface ISwapCatUpgradeable {
   function createOfferWithPermit(
     address offerToken,
     address buyerToken,
-    uint256 offerId,
+    address buyer,
     uint256 price,
     uint256 amount,
     uint256 deadline,
@@ -105,6 +114,22 @@ interface ISwapCatUpgradeable {
     bytes32 r,
     bytes32 s
   ) external;
+
+  // /**
+  //  * @notice Creates a new offer or updates an existing offer (call this again with the changed price + offerId)
+  //  * @param offerToken The address of the token to be sold
+  //  * @param buyerToken The address of the token to be bought
+  //  * @param buyer The address of the buyer
+  //  * @param price The price in base units of the token to be sold
+  //  * @param amount The amount of the offer token
+  //  **/
+  // function createOfferPrivate(
+  //   address offerToken,
+  //   address buyerToken,
+  //   address buyer,
+  //   uint256 price,
+  //   uint256 amount
+  // ) external;
 
   /**
    * @notice Updates an existing offer (call this again with the changed price + offerId)
@@ -196,6 +221,29 @@ interface ISwapCatUpgradeable {
    * @return The offer token address
    * @return The buyer token address
    * @return The seller address
+   * @return The buyer address
+   * @return The price
+   * @return The amount of the offer token
+   **/
+  function getInitialOffer(uint256 offerId)
+    external
+    view
+    returns (
+      address,
+      address,
+      address,
+      address,
+      uint256,
+      uint256
+    );
+
+  /**
+   * @notice Returns the offer information
+   * @param offerId The offer Id
+   * @return The offer token address
+   * @return The buyer token address
+   * @return The seller address
+   * @return The buyer address
    * @return The price
    * @return The available balance
    **/
@@ -203,6 +251,7 @@ interface ISwapCatUpgradeable {
     external
     view
     returns (
+      address,
       address,
       address,
       address,
@@ -224,6 +273,7 @@ interface ISwapCatUpgradeable {
   /**
    * @notice Whitelist or unwhitelist a token
    * @param tokens The token addresses
+   * @param status The token whitelist status, true for whitelisted and false for unwhitelisted
    **/
   function toggleWhitelist(address[] calldata tokens, bool[] calldata status)
     external;
@@ -235,12 +285,15 @@ interface ISwapCatUpgradeable {
    **/
   function isWhitelisted(address token) external view returns (bool);
 
-  // in case someone wrongfully directly sends erc20 to this contract address, the moderator can move them out
+  /**
+   * @notice In case someone wrongfully directly sends erc20 to this contract address, the moderator can move them out
+   * @param token The token address
+   **/
   function saveLostTokens(address token) external;
 
   /**
-   * @notice Transfer the moderator right to a new address
-   * @param newModerator The address of new moderator
+   * @notice Admin sets the fee
+   * @param fee The new fee basic points
    **/
-  function transferModerator(address newModerator) external;
+  function setFee(uint256 fee) external;
 }

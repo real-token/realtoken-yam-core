@@ -5,22 +5,28 @@ import { IERC20 } from "./interfaces/IERC20.sol";
 import "./interfaces/ISwapCatUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 contract SwapCatUpgradeable is
   AccessControlUpgradeable,
   UUPSUpgradeable,
+  ReentrancyGuardUpgradeable,
   ISwapCatUpgradeable
 {
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+  bytes32 public constant MODERATOR_ROLE = keccak256("MODERATOR_ROLE");
 
   mapping(uint256 => uint256) internal prices;
+  mapping(uint256 => uint256) internal amounts;
   mapping(uint256 => address) internal offerTokens;
   mapping(uint256 => address) internal buyerTokens;
   mapping(uint256 => address) internal sellers;
-  mapping(address => bool) public whitelistedTokens;
+  mapping(uint256 => address) internal buyers;
+  mapping(address => bool) internal whitelistedTokens;
   uint256 internal offerCount;
   address public admin; // admin address
   address public moderator; // moderator address, can move stuck funds
+  uint256 public fee; // fee in basis points
 
   /// @notice the initialize function to execute only once during the contract deployment
   /// @param admin_ address of the default admin account: whitelist tokens, delete frozen offers, upgrade the contract
@@ -31,8 +37,10 @@ contract SwapCatUpgradeable is
 
     _grantRole(DEFAULT_ADMIN_ROLE, admin_);
     _grantRole(UPGRADER_ROLE, admin_);
+    _grantRole(MODERATOR_ROLE, moderator_);
     admin = admin_;
     moderator = moderator_;
+    __ReentrancyGuard_init();
   }
 
   /// @notice The admin (with upgrader role) uses this function to update the contract
@@ -45,10 +53,14 @@ contract SwapCatUpgradeable is
   {}
 
   /**
-   * @dev Only moderator can call functions marked by this modifier.
+   * @dev Only moderator or admin can call functions marked by this modifier.
    **/
-  modifier onlyModerator() {
-    require(msg.sender == moderator, "Caller is not moderator");
+  modifier onlyModeratorOrAdmin() {
+    require(
+      hasRole(MODERATOR_ROLE, _msgSender()) ||
+        hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
+      "caller is not moderator or admin"
+    );
     _;
   }
 
@@ -80,63 +92,22 @@ contract SwapCatUpgradeable is
     return whitelistedTokens[token_];
   }
 
-  /**
-   * @notice Creates a new offer or updates an existing offer (call this again with the changed price + offerId)
-   * @param _offerToken The address of the token to be sold
-   * @param _buyerToken The address of the token to be bought
-   * @param _offerId The Id of the offer (0 if new offer)
-   * @param _price The price in base units of the token to be sold
-   * @param _amount The amount of tokens to be sold
-   **/
-  function _createOffer(
-    address _offerToken,
-    address _buyerToken,
-    uint256 _offerId,
-    uint256 _price,
-    uint256 _amount
-  )
-    private
-    onlyWhitelistedToken(_offerToken)
-    onlyWhitelistedToken(_buyerToken)
-  {
-    // require(
-    //   _isTransferValid(_offerToken, msg.sender, msg.sender, 1),
-    //   "Seller can not transfer tokens"
-    // );
-    // if no offerId is given a new offer is made, if offerId is given only the offers price is changed if owner matches
-    if (_offerId == 0) {
-      _offerId = offerCount;
-      offerCount++;
-      sellers[_offerId] = msg.sender;
-      offerTokens[_offerId] = _offerToken;
-      buyerTokens[_offerId] = _buyerToken;
-    } else {
-      require(
-        sellers[_offerId] == msg.sender,
-        "only the seller can change offer"
-      );
-    }
-    prices[_offerId] = _price;
-
-    emit OfferCreated(_offerToken, _buyerToken, _offerId, _price, _amount);
-  }
-
   /// @inheritdoc	ISwapCatUpgradeable
   function createOffer(
     address offerToken,
     address buyerToken,
-    uint256 offerId,
+    address buyer,
     uint256 price,
     uint256 amount
   ) external override {
-    _createOffer(offerToken, buyerToken, offerId, price, amount);
+    _createOffer(offerToken, buyerToken, buyer, price, amount);
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
   function createOfferWithPermit(
     address offerToken,
     address buyerToken,
-    uint256 offerId,
+    address buyer,
     uint256 price,
     uint256 amount,
     uint256 deadline,
@@ -144,7 +115,7 @@ contract SwapCatUpgradeable is
     bytes32 r,
     bytes32 s
   ) external override {
-    _createOffer(offerToken, buyerToken, offerId, price, amount);
+    _createOffer(offerToken, buyerToken, buyer, price, amount);
     IBridgeToken(offerToken).permit(
       msg.sender,
       address(this),
@@ -157,23 +128,65 @@ contract SwapCatUpgradeable is
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
+  function buy(
+    uint256 offerId,
+    uint256 price,
+    uint256 amount
+  ) external override {
+    _buy(offerId, price, amount);
+  }
+
+  /// @inheritdoc	ISwapCatUpgradeable
+  function buyWithPermit(
+    uint256 offerId,
+    uint256 price,
+    uint256 amount,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external override {
+    uint256 buyerTokenAmount = (price * amount) /
+      (uint256(10)**IERC20(offerTokens[offerId]).decimals());
+    IBridgeToken(buyerTokens[offerId]).permit(
+      msg.sender,
+      address(this),
+      buyerTokenAmount,
+      deadline,
+      v,
+      r,
+      s
+    );
+    _buy(offerId, price, amount);
+  }
+
+  /// @inheritdoc	ISwapCatUpgradeable
   function updateOffer(
     uint256 offerId,
     uint256 price,
     uint256 amount
   ) external override {
     require(sellers[offerId] == msg.sender, "only the seller can change offer");
+    emit OfferUpdated(
+      offerId,
+      prices[offerId],
+      price,
+      amounts[offerId],
+      amount
+    );
     prices[offerId] = price;
-    emit OfferUpdated(offerId, price, amount);
+    amounts[offerId] = amount;
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
   function deleteOffer(uint256 offerId) external override {
     require(sellers[offerId] == msg.sender, "only the seller can delete offer");
     delete sellers[offerId];
+    delete buyers[offerId];
     delete offerTokens[offerId];
     delete buyerTokens[offerId];
     delete prices[offerId];
+    delete amounts[offerId];
     emit OfferDeleted(offerId);
   }
 
@@ -184,9 +197,11 @@ contract SwapCatUpgradeable is
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
     delete sellers[offerId];
+    delete buyers[offerId];
     delete offerTokens[offerId];
     delete buyerTokens[offerId];
     delete prices[offerId];
+    delete amounts[offerId];
     emit OfferDeleted(offerId);
   }
 
@@ -196,7 +211,7 @@ contract SwapCatUpgradeable is
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
-  function tokenInfo(address tokenaddr)
+  function tokenInfo(address tokenAddr)
     public
     view
     override
@@ -206,8 +221,36 @@ contract SwapCatUpgradeable is
       string memory
     )
   {
-    IERC20 tokeni = IERC20(tokenaddr);
-    return (tokeni.decimals(), tokeni.symbol(), tokeni.name());
+    IERC20 tokenInterface = IERC20(tokenAddr);
+    return (
+      tokenInterface.decimals(),
+      tokenInterface.symbol(),
+      tokenInterface.name()
+    );
+  }
+
+  /// @inheritdoc	ISwapCatUpgradeable
+  function getInitialOffer(uint256 offerId)
+    public
+    view
+    override
+    returns (
+      address,
+      address,
+      address,
+      address,
+      uint256,
+      uint256
+    )
+  {
+    return (
+      offerTokens[offerId],
+      buyerTokens[offerId],
+      sellers[offerId],
+      buyers[offerId],
+      prices[offerId],
+      amounts[offerId]
+    );
   }
 
   /// @inheritdoc	ISwapCatUpgradeable
@@ -219,29 +262,38 @@ contract SwapCatUpgradeable is
       address,
       address,
       address,
+      address,
       uint256,
       uint256
     )
   {
-    IERC20 offerTokeni = IERC20(offerTokens[offerId]);
+    // IERC20 offerTokenInterface = IERC20(offerTokens[offerId]);
 
     // get offerTokens balance and allowance, whichever is lower is the available amount
-    uint256 availablebalance = offerTokeni.balanceOf(sellers[offerId]);
-    uint256 availableallow = offerTokeni.allowance(
+    uint256 availableBalance = IERC20(offerTokens[offerId]).balanceOf(
+      sellers[offerId]
+    );
+    uint256 availableAllow = IERC20(offerTokens[offerId]).allowance(
       sellers[offerId],
       address(this)
     );
+    uint256 availableAmount = amounts[offerId];
 
-    if (availableallow < availablebalance) {
-      availablebalance = availableallow;
+    if (availableBalance < availableAmount) {
+      availableAmount = availableBalance;
+    }
+
+    if (availableAllow < availableAmount) {
+      availableAmount = availableAllow;
     }
 
     return (
       offerTokens[offerId],
       buyerTokens[offerId],
       sellers[offerId],
+      buyers[offerId],
       prices[offerId],
-      availablebalance
+      availableAmount
     );
   }
 
@@ -252,9 +304,74 @@ contract SwapCatUpgradeable is
     override
     returns (uint256)
   {
-    IERC20 offerTokeni = IERC20(offerTokens[offerId]);
+    IERC20 offerTokenInterface = IERC20(offerTokens[offerId]);
     return
-      (amount * prices[offerId]) / (uint256(10)**offerTokeni.decimals()) + 1;
+      (amount * prices[offerId]) /
+      (uint256(10)**offerTokenInterface.decimals());
+  }
+
+  /// @inheritdoc	ISwapCatUpgradeable
+  function saveLostTokens(address token)
+    external
+    override
+    onlyModeratorOrAdmin
+  {
+    IERC20 tokenInterface = IERC20(token);
+    tokenInterface.transfer(
+      msg.sender,
+      tokenInterface.balanceOf(address(this))
+    );
+  }
+
+  /// @inheritdoc	ISwapCatUpgradeable
+  function setFee(uint256 fee_) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+    emit FeeChanged(fee, fee_);
+    fee = fee_;
+  }
+
+  /**
+   * @notice Creates a new offer or updates an existing offer (call this again with the changed price + offerId)
+   * @param _offerToken The address of the token to be sold
+   * @param _buyerToken The address of the token to be bought
+   * @param _price The price in base units of the token to be sold
+   * @param _amount The amount of tokens to be sold
+   **/
+  function _createOffer(
+    address _offerToken,
+    address _buyerToken,
+    address _buyer,
+    uint256 _price,
+    uint256 _amount
+  )
+    private
+    onlyWhitelistedToken(_offerToken)
+    onlyWhitelistedToken(_buyerToken)
+  {
+    // require(
+    //   _isTransferValid(_offerToken, msg.sender, msg.sender, _amount),
+    //   "Seller can not transfer tokens"
+    // );
+    // if no offerId is given a new offer is made, if offerId is given only the offers price is changed if owner matches
+    uint256 _offerId = offerCount;
+    offerCount++;
+    if (_buyer != address(0)) {
+      buyers[_offerId] = _buyer;
+    }
+    sellers[_offerId] = msg.sender;
+    offerTokens[_offerId] = _offerToken;
+    buyerTokens[_offerId] = _buyerToken;
+    prices[_offerId] = _price;
+    amounts[_offerId] = _amount;
+
+    emit OfferCreated(
+      _offerToken,
+      _buyerToken,
+      msg.sender,
+      _buyer,
+      _offerId,
+      _price,
+      _amount
+    );
   }
 
   /**
@@ -270,110 +387,66 @@ contract SwapCatUpgradeable is
     uint256 _price,
     uint256 _amount
   ) private {
-    IERC20 offerTokenInterface = IERC20(offerTokens[_offerId]);
-    IERC20 buyerTokenInterface = IERC20(buyerTokens[_offerId]);
+    if (buyers[_offerId] != address(0)) {
+      require(buyers[_offerId] == msg.sender, "private offer");
+    }
+
+    address seller = sellers[_offerId];
+    address offerToken = offerTokens[_offerId];
+    address buyerToken = buyerTokens[_offerId];
+
+    IERC20 offerTokenInterface = IERC20(offerToken);
+    IERC20 buyerTokenInterface = IERC20(buyerToken);
 
     // given price is being checked with recorded data from mappings
     require(prices[_offerId] == _price, "offer price wrong");
 
     // Check if the transfer is valid
     require(
-      _isTransferValid(
-        offerTokens[_offerId],
-        sellers[_offerId],
-        msg.sender,
-        _amount
-      ),
+      _isTransferValid(offerToken, seller, msg.sender, _amount),
       "transfer is not valid"
     );
     // calculate the price of the order
+    require(_amount <= amounts[_offerId], "amount too high");
+    require(
+      _amount * _price > (uint256(10)**offerTokenInterface.decimals()),
+      "amount too low"
+    );
     uint256 buyerTokenAmount = (_amount * _price) /
-      (uint256(10)**offerTokenInterface.decimals()) +
-      1;
+      (uint256(10)**offerTokenInterface.decimals());
 
     // some old erc20 tokens give no return value so we must work around by getting their balance before and after the exchange
-    uint256 oldbuyerbalance = buyerTokenInterface.balanceOf(msg.sender);
-    uint256 oldsellerbalance = offerTokenInterface.balanceOf(sellers[_offerId]);
+    uint256 oldBuyerBalance = buyerTokenInterface.balanceOf(msg.sender);
+    uint256 oldSellerBalance = offerTokenInterface.balanceOf(seller);
+
+    // Update amount in mapping
+    amounts[_offerId] = amounts[_offerId] - _amount;
 
     // finally do the exchange
-    buyerTokenInterface.transferFrom(
-      msg.sender,
-      sellers[_offerId],
-      buyerTokenAmount
-    );
-    offerTokenInterface.transferFrom(sellers[_offerId], msg.sender, _amount);
+    buyerTokenInterface.transferFrom(msg.sender, seller, buyerTokenAmount);
+    offerTokenInterface.transferFrom(seller, msg.sender, _amount);
 
     // now check if the balances changed on both accounts.
     // we do not check for exact amounts since some tokens behave differently with fees, burnings, etc
     // we assume if both balances are higher than before all is good
     require(
-      oldbuyerbalance > buyerTokenInterface.balanceOf(msg.sender),
+      oldBuyerBalance > buyerTokenInterface.balanceOf(msg.sender),
       "buyer error"
     );
     require(
-      oldsellerbalance > offerTokenInterface.balanceOf(sellers[_offerId]),
+      oldSellerBalance > offerTokenInterface.balanceOf(seller),
       "seller error"
     );
 
     emit OfferAccepted(
       _offerId,
-      sellers[_offerId],
+      seller,
       msg.sender,
+      offerToken,
+      buyerToken,
       _price,
       _amount
     );
-  }
-
-  function buy(
-    uint256 offerId,
-    uint256 price,
-    uint256 amount
-  ) external override {
-    _buy(offerId, price, amount);
-  }
-
-  function buyWithPermit(
-    uint256 offerId,
-    uint256 price,
-    uint256 amount,
-    uint256 deadline,
-    uint8 v,
-    bytes32 r,
-    bytes32 s
-  ) external override {
-    uint256 buyerTokenAmount = (price * amount) /
-      (uint256(10)**IERC20(offerTokens[offerId]).decimals()) +
-      1;
-    IBridgeToken(buyerTokens[offerId]).permit(
-      msg.sender,
-      address(this),
-      buyerTokenAmount,
-      deadline,
-      v,
-      r,
-      s
-    );
-    _buy(offerId, price, amount);
-  }
-
-  /// @inheritdoc	ISwapCatUpgradeable
-  function saveLostTokens(address token) external override {
-    require(
-      msg.sender == moderator || msg.sender == admin,
-      "only admin or moderator can move lost tokens"
-    );
-    IERC20 tokenInterface = IERC20(token);
-    tokenInterface.transfer(moderator, tokenInterface.balanceOf(address(this)));
-  }
-
-  /// @inheritdoc	ISwapCatUpgradeable
-  function transferModerator(address newModerator)
-    external
-    override
-    onlyModerator
-  {
-    emit ModeratorTransferred(moderator, newModerator);
-    moderator = newModerator;
   }
 
   /**
@@ -400,11 +473,4 @@ contract SwapCatUpgradeable is
     // If everything is fine, return true
     return isTransferValid;
   }
-
-  /**
-   * @dev This empty reserved space is put in place to allow future versions to add new
-   * variables without shifting down storage in the inheritance chain.
-   * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
-   */
-  uint256[42] private __gap;
 }
