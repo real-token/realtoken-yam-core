@@ -1,7 +1,7 @@
 {
-  "name": "realtoken-swapcat",
-  "version": "1.0.0",
-  "description": "Realt SwapCat for RealToken",
+  "name": "realtoken-yam-core",
+  "version": "0.2.0",
+  "description": "RealToken YAM",
   "main": "index.js",
   "scripts": {
     "prepare": "husky install",

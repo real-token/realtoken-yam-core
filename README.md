@@ -7,29 +7,29 @@
 [![MIT License][license-shield]][license-url]
 [![LinkedIn][linkedin-shield]][linkedin-url]
 
-[![Lint](https://github.com/real-token/realtoken-swapcat/actions/workflows/lint.yml/badge.svg)](https://github.com/real-token/realtoken-swapcat/actions/workflows/lint.yml)
-[![Slither](https://github.com/real-token/realtoken-swapcat/actions/workflows/slither.yml/badge.svg)](https://github.com/real-token/realtoken-swapcat/actions/workflows/slither.yml)
-[![Build pass](https://github.com/real-token/realtoken-swapcat/actions/workflows/node.js.yml/badge.svg?branch=master)](https://github.com/real-token/realtoken-swapcat/actions/workflows/node.js.yml)
+[![Lint](https://github.com/real-token/realtoken-yam-core/actions/workflows/lint.yml/badge.svg)](https://github.com/real-token/realtoken-yam-core/actions/workflows/lint.yml)
+[![Slither](https://github.com/real-token/realtoken-yam-core/actions/workflows/slither.yml/badge.svg)](https://github.com/real-token/realtoken-yam-core/actions/workflows/slither.yml)
+[![Build pass](https://github.com/real-token/realtoken-yam-core/actions/workflows/node.js.yml/badge.svg?branch=master)](https://github.com/real-token/realtoken-yam-core/actions/workflows/node.js.yml)
 [![Prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 
 <!-- PROJECT LOGO -->
 <br />
 <div align="center" id="about-the-project">
-  <a href="https://github.com/real-token/realtoken-swapcat">
+  <a href="https://github.com/real-token/realtoken-yam-core">
     <img src="images/logo.svg" alt="Logo" width="80" height="80">
   </a>
 
-<h3 align="center">RealToken SwapCat DEX</h3>
+<h3 align="center">RealToken YAM</h3>
 
   <p align="center">
-    SwapCat with whitelist token
+    Peer-to-peer RealToken YAM
     <br />
     <a href="https://realt.co/"><strong>Realt.co</strong></a>
     <br />
     <br />
-    <a href="https://github.com/real-token/realtoken-swapcat/issues">Report Bug</a>
+    <a href="https://github.com/real-token/realtoken-yam-core/issues">Report Bug</a>
     ·
-    <a href="https://github.com/real-token/realtoken-swapcat/issues">Request Feature</a>
+    <a href="https://github.com/real-token/realtoken-yam-core/issues">Request Feature</a>
   </p>
 </div>
 
@@ -71,7 +71,7 @@
 
 1. Clone the repo
    ```sh
-   git clone https://github.com/real-token/realtoken-swapcat.git
+   git clone https://github.com/real-token/realtoken-yam-core.git
    ```
 2. Install NPM packages
    ```sh
@@ -123,13 +123,13 @@ slither .
 
 ## Roadmap
 
-- SwapCat contracts with basic functionnalities ✅
+- YAM core contracts with basic functionnalities ✅
 - Add whitelisting token functionnalities ✅
 - Testing ✅
 - Slither analysis ✅
 - Support for Hardware Wallet ❌
 
-See the [open issues](https://github.com/real-token/realtoken-swapcat/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/real-token/realtoken-yam-core/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -228,7 +228,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 Support - [@RealTPlatform](https://twitter.com/RealTPlatform) - support@realt.co
 
-Project Link: [https://github.com/real-token/realtoken-swapcat](https://github.com/real-token/realtoken-swapcat)
+Project Link: [https://github.com/real-token/realtoken-yam-core](https://github.com/real-token/realtoken-yam-core)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -249,18 +249,18 @@ Project Link: [https://github.com/real-token/realtoken-swapcat](https://github.c
 
 <!-- MARKDOWN LINKS & IMAGES -->
 
-[contributors-shield]: https://img.shields.io/github/contributors/real-token/realtoken-swapcat.svg?style=for-the-badge
-[contributors-url]: https://github.com/real-token/realtoken-swapcat/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/real-token/realtoken-swapcat.svg?style=for-the-badge
-[forks-url]: https://github.com/real-token/realtoken-swapcat/network/members
-[stars-shield]: https://img.shields.io/github/stars/real-token/realtoken-swapcat.svg?style=for-the-badge
-[stars-url]: https://github.com/real-token/realtoken-swapcat/stargazers
-[issues-shield]: https://img.shields.io/github/issues/real-token/realtoken-swapcat.svg?style=for-the-badge
-[issues-url]: https://github.com/real-token/realtoken-swapcat/issues
-[license-shield]: https://img.shields.io/github/license/real-token/realtoken-swapcat.svg?style=for-the-badge
-[license-url]: https://github.com/real-token/realtoken-swapcat/blob/master/LICENSE.txt
+[contributors-shield]: https://img.shields.io/github/contributors/real-token/realtoken-yam-core.svg?style=for-the-badge
+[contributors-url]: https://github.com/real-token/realtoken-yam-core/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/real-token/realtoken-yam-core.svg?style=for-the-badge
+[forks-url]: https://github.com/real-token/realtoken-yam-core/network/members
+[stars-shield]: https://img.shields.io/github/stars/real-token/realtoken-yam-core.svg?style=for-the-badge
+[stars-url]: https://github.com/real-token/realtoken-yam-core/stargazers
+[issues-shield]: https://img.shields.io/github/issues/real-token/realtoken-yam-core.svg?style=for-the-badge
+[issues-url]: https://github.com/real-token/realtoken-yam-core/issues
+[license-shield]: https://img.shields.io/github/license/real-token/realtoken-yam-core.svg?style=for-the-badge
+[license-url]: https://github.com/real-token/realtoken-yam-core/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://www.linkedin.com/company/realtplatform/
 [product-screenshot]: images/screenshot.png
 [use-template]: images/delete_me.png
-[use-url]: https://github.com/real-token/realtoken-swapcat/generate
+[use-url]: https://github.com/real-token/realtoken-yam-core/generate
