@@ -8,6 +8,11 @@ interface IBridgeToken {
 
   function owner() external view returns (address);
 
+  function allowance(address _owner, address _spender)
+    external
+    view
+    returns (uint256);
+
   function transferFrom(
     address _from,
     address _to,

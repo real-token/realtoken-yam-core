@@ -128,6 +128,26 @@ interface IRealTokenYamUpgradeable {
   ) external;
 
   /**
+   * @notice Updates an existing offer (call this again with the changed price + offerId)
+   * @param offerId The Id of the offer
+   * @param price The price in base units of the token to be sold
+   * @param amount The amount of the offer token
+   * @param deadline The deadline of the permit
+   * @param v v of the signature
+   * @param r r of the signature
+   * @param s s of the signature
+   **/
+  function updateOfferWithPermit(
+    uint256 offerId,
+    uint256 price,
+    uint256 amount,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external;
+
+  /**
    * @notice Deletes an existing offer, only the seller of the offer can do this
    * @param offerId The Id of the offer to be deleted
    **/

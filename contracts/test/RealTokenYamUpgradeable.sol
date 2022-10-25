@@ -124,10 +124,12 @@ contract RealTokenYamUpgradeable is
     bytes32 s
   ) external override whenNotPaused {
     _createOffer(offerToken, buyerToken, buyer, price, amount);
+    uint256 amountToPermit = amount +
+      IBridgeToken(offerToken).allowance(msg.sender, address(this));
     IBridgeToken(offerToken).permit(
       msg.sender,
       address(this),
-      amount,
+      amountToPermit,
       deadline,
       v,
       r,
@@ -181,6 +183,45 @@ contract RealTokenYamUpgradeable is
       price,
       amounts[offerId],
       amount
+    );
+    prices[offerId] = price;
+    amounts[offerId] = amount;
+  }
+
+  /// @inheritdoc	IRealTokenYamUpgradeable
+  function updateOfferWithPermit(
+    uint256 offerId,
+    uint256 price,
+    uint256 amount,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) public override whenNotPaused {
+    require(sellers[offerId] == msg.sender, "only the seller can change offer");
+
+    emit OfferUpdated(
+      offerId,
+      prices[offerId],
+      price,
+      amounts[offerId],
+      amount
+    );
+    uint256 amountToPermit = IBridgeToken(offerTokens[offerId]).allowance(
+      msg.sender,
+      address(this)
+    ) +
+      amount -
+      amounts[offerId];
+
+    IBridgeToken(offerTokens[offerId]).permit(
+      msg.sender,
+      address(this),
+      amountToPermit,
+      deadline,
+      v,
+      r,
+      s
     );
     prices[offerId] = price;
     amounts[offerId] = amount;
