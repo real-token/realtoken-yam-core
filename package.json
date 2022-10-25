@@ -46,7 +46,8 @@
     "upgrade::matic": "npx hardhat run scripts/upgradeProxy.ts --network matic",
     "upgrade::mumbai": "npx hardhat run scripts/upgradeProxy.ts --network mumbai",
     "upgrade::arbitrum": "npx hardhat run scripts/upgradeProxy.ts --network arbitrum",
-    "approve::goerli": "npx hardhat run scripts/approveBridgeToken.ts --network goerli"
+    "approve::goerli": "npx hardhat run scripts/approveBridgeToken.ts --network goerli",
+    "query:allowance": "npx hardhat run utils/queryAllowance.ts"
   },
   "author": "RealToken Technologies Inc.",
   "license": "MIT",
