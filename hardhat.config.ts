@@ -9,6 +9,7 @@ import "solidity-coverage";
 import "@openzeppelin/hardhat-upgrades";
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-web3";
+import "hardhat-contract-sizer";
 import networks from "./hardhat.networks";
 
 dotenv.config();
@@ -115,6 +116,12 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
+  },
+  contractSizer: {
+    alphaSort: true,
+    disambiguatePaths: false,
+    runOnCompile: true,
+    strict: true,
   },
 };
 
