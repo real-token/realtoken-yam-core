@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { IERC20 } from "../interfaces/IERC20.sol";
-import "../interfaces/IRealTokenYamUpgradeable.sol";
+import { IERC20 } from "./interfaces/IERC20.sol";
+import "./interfaces/IRealTokenYamUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
@@ -421,6 +421,23 @@ contract RealTokenYamUpgradeable is
     );
   }
 
+  function _updateOffer(
+    uint256 offerId,
+    uint256 price,
+    uint256 amount
+  ) private {
+    require(sellers[offerId] == msg.sender, "only the seller can change offer");
+    emit OfferUpdated(
+      offerId,
+      prices[offerId],
+      price,
+      amounts[offerId],
+      amount
+    );
+    prices[offerId] = price;
+    amounts[offerId] = amount;
+  }
+
   /**
    * @notice Accepts an existing offer
    * @notice The buyer must bring the price correctly to ensure no frontrunning / changed offer
@@ -521,6 +538,76 @@ contract RealTokenYamUpgradeable is
     return isTransferValid;
   }
 
+  //TODO 1: test this with UI
+  function createOfferBatch(
+    address[] calldata _offerTokens,
+    address[] calldata _buyerTokens,
+    address[] calldata _buyers,
+    uint256[] calldata _prices,
+    uint256[] calldata _amounts
+  ) external whenNotPaused {
+    uint256 length = _offerTokens.length;
+    require(
+      _buyerTokens.length == length &&
+        _prices.length == length &&
+        _amounts.length == length,
+      "invalid input"
+    );
+    for (uint256 i = 0; i < length; i++) {
+      _createOffer(
+        _offerTokens[i],
+        _buyerTokens[i],
+        _buyers[i],
+        _prices[i],
+        _amounts[i]
+      );
+    }
+  }
+
+  //TODO 2: test this with UI
+  function updateOfferBatch(
+    uint256[] calldata _offerIds,
+    uint256[] calldata _prices,
+    uint256[] calldata _amounts
+  ) external whenNotPaused {
+    uint256 length = _offerIds.length;
+    require(
+      _prices.length == length && _amounts.length == length,
+      "length mismatch"
+    );
+    for (uint256 i = 0; i < length; i++) {
+      updateOffer(_offerIds[i], _prices[i], _amounts[i]);
+    }
+  }
+
+  //TODO 3: test this with UI
+  function deleteOfferBatch(uint256[] calldata _offerIds)
+    external
+    whenNotPaused
+  {
+    uint256 length = _offerIds.length;
+    for (uint256 i = 0; i < length; i++) {
+      deleteOffer(_offerIds[i]);
+    }
+  }
+
+  //TODO 4: test this with UI
+  function buyOfferBatch(
+    uint256[] calldata _offerIds,
+    uint256[] calldata _prices,
+    uint256[] calldata _amounts
+  ) external whenNotPaused {
+    uint256 length = _offerIds.length;
+    require(
+      _prices.length == length && _amounts.length == length,
+      "length mismatch"
+    );
+    for (uint256 i = 0; i < length; i++) {
+      _buy(_offerIds[i], _prices[i], _amounts[i]);
+    }
+  }
+
+  //TODO 5: test this with UI
   function buyWithNativeCurrency(
     uint256 _offerId,
     uint256 _price,
@@ -587,70 +674,5 @@ contract RealTokenYamUpgradeable is
       _price,
       _amount
     );
-  }
-
-  function createOfferBatch(
-    address[] calldata _offerTokens,
-    address[] calldata _buyerTokens,
-    address[] calldata _buyers,
-    uint256[] calldata _prices,
-    uint256[] calldata _amounts
-  ) external whenNotPaused {
-    uint256 length = _offerTokens.length;
-    require(
-      _buyerTokens.length == length &&
-        _prices.length == length &&
-        _amounts.length == length,
-      "invalid input"
-    );
-    for (uint256 i = 0; i < length; i++) {
-      _createOffer(
-        _offerTokens[i],
-        _buyerTokens[i],
-        _buyers[i],
-        _prices[i],
-        _amounts[i]
-      );
-    }
-  }
-
-  function updateOfferBatch(
-    uint256[] calldata _offerIds,
-    uint256[] calldata _prices,
-    uint256[] calldata _amounts
-  ) external whenNotPaused {
-    uint256 length = _offerIds.length;
-    require(
-      _prices.length == length && _amounts.length == length,
-      "length mismatch"
-    );
-    for (uint256 i = 0; i < length; i++) {
-      updateOffer(_offerIds[i], _prices[i], _amounts[i]);
-    }
-  }
-
-  function deleteOfferBatch(uint256[] calldata _offerIds)
-    external
-    whenNotPaused
-  {
-    uint256 length = _offerIds.length;
-    for (uint256 i = 0; i < length; i++) {
-      deleteOffer(_offerIds[i]);
-    }
-  }
-
-  function buyOfferBatch(
-    uint256[] calldata _offerIds,
-    uint256[] calldata _prices,
-    uint256[] calldata _amounts
-  ) external whenNotPaused {
-    uint256 length = _offerIds.length;
-    require(
-      _prices.length == length && _amounts.length == length,
-      "length mismatch"
-    );
-    for (uint256 i = 0; i < length; i++) {
-      _buy(_offerIds[i], _prices[i], _amounts[i]);
-    }
   }
 }

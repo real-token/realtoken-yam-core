@@ -39,5 +39,8 @@ module.exports = {
     "test/bridge-token/token/CoinBridgeToken.sol",
     "test/bridge-token/token/utils/ECRecover.sol",
     "test/bridge-token/token/utils/EIP712.sol",
+    "test-tokens/USDCRealT.sol",
+    "test-tokens/WXDAIRealT.sol",
+    "test-tokens/WETHRealT.sol",
   ],
 };
