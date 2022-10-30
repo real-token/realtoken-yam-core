@@ -29,6 +29,7 @@ contract RealTokenYamUpgradeable is
   mapping(address => bool) internal whitelistedTokens;
   uint256 internal offerCount;
   uint256 public fee; // fee in basis points
+  mapping(address => TokenType) internal tokenTypes;
 
   /// @notice the initialize function to execute only once during the contract deployment
   /// @param admin_ address of the default admin account: whitelist tokens, delete frozen offers, upgrade the contract
@@ -72,6 +73,17 @@ contract RealTokenYamUpgradeable is
     _;
   }
 
+  /**
+   * @dev Only whitelisted token can be used by functions marked by this modifier.
+   **/
+  modifier onlyWhitelistTokenWithType(address token_) {
+    require(
+      tokenTypes[token_] != TokenType.NOTWHITELISTEDTOKEN,
+      "Token is not whitelisted"
+    );
+    _;
+  }
+
   function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
     _pause();
   }
@@ -96,6 +108,20 @@ contract RealTokenYamUpgradeable is
   }
 
   /// @inheritdoc	IRealTokenYamUpgradeable
+  function toggleWhitelistWithType(
+    address[] calldata tokens_,
+    TokenType[] calldata types_
+  ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+    require(tokens_.length == types_.length, "Lengths are not equal");
+    uint256 length = tokens_.length;
+    for (uint256 i = 0; i < length; ) {
+      tokenTypes[tokens_[i]] = types_[i];
+      ++i;
+    }
+    emit TokenWhitelistWithTypeToggled(tokens_, types_);
+  }
+
+  /// @inheritdoc	IRealTokenYamUpgradeable
   function isWhitelisted(address token_) external view override returns (bool) {
     return whitelistedTokens[token_];
   }
@@ -108,6 +134,10 @@ contract RealTokenYamUpgradeable is
     uint256 price,
     uint256 amount
   ) external override whenNotPaused {
+    require(
+      tokenTypes[offerToken] != TokenType.REALTOKEN,
+      "Use permit methode for RealToken"
+    );
     _createOffer(offerToken, buyerToken, buyer, price, amount);
   }
 
@@ -123,7 +153,18 @@ contract RealTokenYamUpgradeable is
     bytes32 r,
     bytes32 s
   ) external override whenNotPaused {
+    // If the offerToken is a RealToken, isTransferValid need to be checked
+    if (tokenTypes[offerToken] == TokenType.REALTOKEN) {
+      require(
+        _isTransferValid(offerToken, msg.sender, msg.sender, amount),
+        "Seller can not transfer tokens"
+      );
+    }
+
+    // Create the offer
     _createOffer(offerToken, buyerToken, buyer, price, amount);
+
+    // Permit amount is cumulated through all offers
     uint256 amountToPermit = amount +
       IBridgeToken(offerToken).allowance(msg.sender, address(this));
     IBridgeToken(offerToken).permit(
@@ -156,6 +197,19 @@ contract RealTokenYamUpgradeable is
     bytes32 r,
     bytes32 s
   ) external override whenNotPaused {
+    // If the offerToken is a RealToken, isTransferValid need to be checked
+    if (tokenTypes[offerTokens[offerId]] == TokenType.REALTOKEN) {
+      require(
+        _isTransferValid(
+          offerTokens[offerId],
+          sellers[offerId],
+          msg.sender,
+          amount
+        ),
+        "transfer is not valid"
+      );
+    }
+
     uint256 buyerTokenAmount = (price * amount) /
       (uint256(10)**IERC20(offerTokens[offerId]).decimals());
     IBridgeToken(buyerTokens[offerId]).permit(
@@ -257,6 +311,16 @@ contract RealTokenYamUpgradeable is
   /// @inheritdoc	IRealTokenYamUpgradeable
   function getOfferCount() public view override returns (uint256) {
     return offerCount;
+  }
+
+  /// @inheritdoc	IRealTokenYamUpgradeable
+  function getTokenType(address token)
+    external
+    view
+    override
+    returns (TokenType)
+  {
+    return tokenTypes[token];
   }
 
   /// @inheritdoc	IRealTokenYamUpgradeable
@@ -391,13 +455,9 @@ contract RealTokenYamUpgradeable is
     uint256 _amount
   )
     private
-    onlyWhitelistedToken(_offerToken)
-    onlyWhitelistedToken(_buyerToken)
+    onlyWhitelistTokenWithType(_offerToken)
+    onlyWhitelistTokenWithType(_buyerToken)
   {
-    require(
-      _isTransferValid(_offerToken, msg.sender, msg.sender, _amount),
-      "Seller can not transfer tokens"
-    );
     // if no offerId is given a new offer is made, if offerId is given only the offers price is changed if owner matches
     uint256 _offerId = offerCount;
     offerCount++;
@@ -465,11 +525,6 @@ contract RealTokenYamUpgradeable is
     // given price is being checked with recorded data from mappings
     require(prices[_offerId] == _price, "offer price wrong");
 
-    // Check if the transfer is valid
-    require(
-      _isTransferValid(offerToken, seller, msg.sender, _amount),
-      "transfer is not valid"
-    );
     // calculate the price of the order
     require(_amount <= amounts[_offerId], "amount too high");
     require(
