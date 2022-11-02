@@ -4,7 +4,7 @@ import { utils } from "ethers";
 
 import { CoinBridgeToken } from "../../../typechain/CoinBridgeToken";
 
-const coinBridgeTokenPermitSignature = async (
+const realTokenPermitSignature = async (
   owner: string,
   spender: string,
   amount: string,
@@ -73,4 +73,4 @@ const coinBridgeTokenPermitSignature = async (
   }
 };
 
-export default coinBridgeTokenPermitSignature;
+export default realTokenPermitSignature;

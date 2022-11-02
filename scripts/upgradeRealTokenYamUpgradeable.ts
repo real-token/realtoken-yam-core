@@ -6,7 +6,8 @@ async function main() {
   );
   const RealTokenYamUpgradeableV2Upgraded = await upgrades.upgradeProxy(
     process.env.REALTOKEN_YAM_PROXY as string,
-    RealTokenYamUpgradeable
+    RealTokenYamUpgradeable,
+    { timeout: 0 }
   );
 
   console.log("The contract is upgraded");
