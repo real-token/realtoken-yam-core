@@ -13,6 +13,7 @@ import { VestingRule } from "../typechain/VestingRule";
 import { UserAttributeValidToRule } from "../typechain/UserAttributeValidToRule";
 import { RealTokenYamUpgradeable } from "../typechain/RealTokenYamUpgradeable";
 
+export const STABLE_RATE = 1000000;
 export async function makeSuite() {
   const [admin, moderator, user1, user2]: SignerWithAddress[] =
     await ethers.getSigners();
@@ -40,9 +41,9 @@ export async function makeSuite() {
   );
 
   const usdcTokenTest = await USDCTokenTest.deploy();
-  const usdcRealT = await USDCRealT.deploy();
-  const wxdaiRealT = await WXDAIRealT.deploy();
-  const wethRealT = await WETHRealT.deploy();
+  const usdcRealT = await upgrades.deployProxy(USDCRealT, []);
+  const wxdaiRealT = await upgrades.deployProxy(WXDAIRealT, []);
+  const wethRealT = await upgrades.deployProxy(WETHRealT, []);
 
   // Deploy ComplianceRegistry contract: owner = admin
   const complianceRegistry = (await upgrades.deployProxy(
@@ -198,12 +199,20 @@ export async function makeSuiteWhitelist() {
   await realTokenYamUpgradeable
     .connect(admin)
     .toggleWhitelistWithType(
-      [usdcTokenTest.address, bridgeToken.address],
-      [3, 1]
+      [bridgeToken.address, usdcRealT.address, usdcTokenTest.address],
+      [1, 2, 3]
     );
+  console.log(
+    "balance admin usdcRealT: ",
+    await usdcRealT.balanceOf(admin.address)
+  );
 
   await bridgeToken.transfer(user1.address, amount1); // Send 1000 RTT to user1
-  await usdcTokenTest.transfer(user2.address, amount2); // Send 1000 USDC to user2
+  await bridgeToken.transfer(user2.address, amount1); // Send 1000 RTT to user2
+  await usdcRealT.transfer(user1.address, amount2); // Send 1000 USDCRealT to user1
+  await usdcRealT.transfer(user2.address, amount2); // Send 1000 USDCRealT to user2
+  await usdcTokenTest.transfer(user1.address, amount2); // Send 1000 USDCTokenTest to user1
+  await usdcTokenTest.transfer(user2.address, amount2); // Send 1000 USDCTokenTest to user2
 
   return {
     usdcTokenTest,
@@ -238,31 +247,18 @@ export async function makeSuiteWhitelistAndCreateOffer() {
     user1,
     user2,
   } = await loadFixture(makeSuiteWhitelist);
-  await time.increaseTo(unlockTime);
-
-  // Create offer: offerId = 0 RealToken/USDCRealT (type 1/2)
-  await realTokenYamUpgradeable
-    .connect(user1)
-    .createOffer(
-      bridgeToken.address,
-      usdcRealT.address,
-      ZERO_ADDRESS,
-      50000000,
-      BigNumber.from("1000000000000000000000")
-    );
-
-  // Create offer: offerId = 1 USDCRealT/USDCTokenTest (type 2/3)
+  // Create offer: offerId = 0 USDCRealT/USDCTokenTest (type 2/3)
   await realTokenYamUpgradeable
     .connect(user1)
     .createOffer(
       usdcRealT.address,
       usdcTokenTest.address,
       ZERO_ADDRESS,
-      55000000,
+      STABLE_RATE,
       BigNumber.from("1000000000000000000000")
     );
 
-  // Create offer: offerId = 2 USDCTokenTest/RealToken (type 3/1)
+  // Create offer: offerId = 1 USDCTokenTest/RealToken (type 3/1)
   await realTokenYamUpgradeable
     .connect(user1)
     .createOffer(
@@ -272,6 +268,18 @@ export async function makeSuiteWhitelistAndCreateOffer() {
       55000000,
       BigNumber.from("1000000000000000000000")
     );
+
+  // Create offer: offerId = 2 RealToken/USDCRealT (type 1/2)
+  // await time.increaseTo(unlockTime);
+  // await realTokenYamUpgradeable
+  //   .connect(user1)
+  //   .createOfferWithPermit(
+  //     bridgeToken.address,
+  //     usdcRealT.address,
+  //     ZERO_ADDRESS,
+  //     50000000,
+  //     BigNumber.from("1000000000000000000000")
+  //   );
 
   await bridgeToken
     .connect(user1)
