@@ -1,4 +1,16 @@
-import { ZERO_ADDRESS } from "./../../helpers/constants";
+import {
+  ZERO_ADDRESS,
+  PRICE_STABLE_1,
+  PRICE_REALTOKEN_1,
+  AMOUNT_MINT_REALTOKEN,
+  AMOUNT_TRANSFER_REALTOKEN,
+  AMOUNT_TRANSFER_STABLE,
+  AMOUNT_APPROVAL_REALTOKEN,
+  AMOUNT_APPROVAL_STABLE,
+  AMOUNT_OFFER_REALTOKEN,
+  AMOUNT_OFFER_STABLE_1,
+  ONE_YEAR_IN_SECS,
+} from "./constants";
 import { BigNumber } from "ethers";
 import { ethers, upgrades } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
@@ -13,7 +25,6 @@ import { VestingRule } from "../typechain/VestingRule";
 import { UserAttributeValidToRule } from "../typechain/UserAttributeValidToRule";
 import { RealTokenYamUpgradeable } from "../typechain/RealTokenYamUpgradeable";
 
-export const STABLE_RATE = 1000000;
 export async function makeSuite() {
   const [admin, moderator, user1, user2]: SignerWithAddress[] =
     await ethers.getSigners();
@@ -118,7 +129,6 @@ export async function makeSuite() {
   // Rule 1: isFrozen
   // Rule 12: VestingTimestamp
   // Source: https://github.com/MtPelerin/bridge-v2/blob/master/docs/RuleEngine.md
-  const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
   const unlockTime = (await time.latest()) + ONE_YEAR_IN_SECS;
   console.log("Unlock timestamp: ", unlockTime);
 
@@ -131,10 +141,7 @@ export async function makeSuite() {
   await bridgeToken.addAdministrator(admin.address);
   await bridgeToken.addSupplier(admin.address);
   // Mint 1000000 BTT to admin address
-  await bridgeToken.mint(
-    admin.address,
-    BigNumber.from("1000000000000000000000000")
-  );
+  await bridgeToken.mint(admin.address, AMOUNT_MINT_REALTOKEN);
   console.log("BTT Admin balance ", await bridgeToken.balanceOf(admin.address));
 
   // Whitelist admin, user1, user2
@@ -194,8 +201,6 @@ export async function makeSuiteWhitelist() {
     user1,
     user2,
   } = await loadFixture(makeSuite);
-  const amount1 = BigNumber.from("1000000000000000000000"); // 1000 BTT
-  const amount2 = BigNumber.from("1000000000"); // 1000 USDC
   await realTokenYamUpgradeable
     .connect(admin)
     .toggleWhitelistWithType(
@@ -207,12 +212,12 @@ export async function makeSuiteWhitelist() {
     await usdcRealT.balanceOf(admin.address)
   );
 
-  await bridgeToken.transfer(user1.address, amount1); // Send 1000 RTT to user1
-  await bridgeToken.transfer(user2.address, amount1); // Send 1000 RTT to user2
-  await usdcRealT.transfer(user1.address, amount2); // Send 1000 USDCRealT to user1
-  await usdcRealT.transfer(user2.address, amount2); // Send 1000 USDCRealT to user2
-  await usdcTokenTest.transfer(user1.address, amount2); // Send 1000 USDCTokenTest to user1
-  await usdcTokenTest.transfer(user2.address, amount2); // Send 1000 USDCTokenTest to user2
+  await bridgeToken.transfer(user1.address, AMOUNT_TRANSFER_REALTOKEN); // Send 1000 RTT to user1
+  await bridgeToken.transfer(user2.address, AMOUNT_TRANSFER_REALTOKEN); // Send 1000 RTT to user2
+  await usdcRealT.transfer(user1.address, AMOUNT_TRANSFER_STABLE); // Send 1000 USDCRealT to user1
+  await usdcRealT.transfer(user2.address, AMOUNT_TRANSFER_STABLE); // Send 1000 USDCRealT to user2
+  await usdcTokenTest.transfer(user1.address, AMOUNT_TRANSFER_STABLE); // Send 1000 USDCTokenTest to user1
+  await usdcTokenTest.transfer(user2.address, AMOUNT_TRANSFER_STABLE); // Send 1000 USDCTokenTest to user2
 
   return {
     usdcTokenTest,
@@ -254,8 +259,8 @@ export async function makeSuiteWhitelistAndCreateOffer() {
       usdcRealT.address,
       usdcTokenTest.address,
       ZERO_ADDRESS,
-      STABLE_RATE,
-      BigNumber.from("1000000000000000000000")
+      PRICE_STABLE_1,
+      AMOUNT_OFFER_STABLE_1
     );
 
   // Create offer: offerId = 1 USDCTokenTest/RealToken (type 3/1)
@@ -265,8 +270,8 @@ export async function makeSuiteWhitelistAndCreateOffer() {
       usdcTokenTest.address,
       bridgeToken.address,
       ZERO_ADDRESS,
-      55000000,
-      BigNumber.from("1000000000000000000000")
+      PRICE_STABLE_1,
+      AMOUNT_OFFER_STABLE_1
     );
 
   // Create offer: offerId = 2 RealToken/USDCRealT (type 1/2)
@@ -283,28 +288,22 @@ export async function makeSuiteWhitelistAndCreateOffer() {
 
   await bridgeToken
     .connect(user1)
-    .approve(
-      realTokenYamUpgradeable.address,
-      BigNumber.from("10000000000000000000")
-    );
+    .approve(realTokenYamUpgradeable.address, AMOUNT_APPROVAL_REALTOKEN);
   await bridgeToken
     .connect(user2)
-    .approve(
-      realTokenYamUpgradeable.address,
-      BigNumber.from("10000000000000000000")
-    );
+    .approve(realTokenYamUpgradeable.address, AMOUNT_APPROVAL_REALTOKEN);
   await usdcRealT
     .connect(user1)
-    .approve(realTokenYamUpgradeable.address, BigNumber.from("10000000"));
+    .approve(realTokenYamUpgradeable.address, AMOUNT_APPROVAL_STABLE);
   await usdcRealT
     .connect(user2)
-    .approve(realTokenYamUpgradeable.address, BigNumber.from("10000000"));
+    .approve(realTokenYamUpgradeable.address, AMOUNT_APPROVAL_STABLE);
   await usdcTokenTest
     .connect(user1)
-    .approve(realTokenYamUpgradeable.address, BigNumber.from("10000000"));
+    .approve(realTokenYamUpgradeable.address, AMOUNT_APPROVAL_STABLE);
   await usdcTokenTest
     .connect(user2)
-    .approve(realTokenYamUpgradeable.address, BigNumber.from("10000000"));
+    .approve(realTokenYamUpgradeable.address, AMOUNT_APPROVAL_STABLE);
 
   return {
     bridgeToken,

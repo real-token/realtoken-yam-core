@@ -1,11 +1,9 @@
 import { expect } from "chai";
 import { BigNumber } from "ethers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import {
-  makeSuiteWhitelistAndCreateOffer,
-  STABLE_RATE,
-} from "./helpers/make-suite";
+import { makeSuiteWhitelistAndCreateOffer } from "./helpers/make-suite";
 import { ZERO_ADDRESS } from "../helpers/constants";
+import { PRICE_STABLE_1 } from "./helpers/constants";
 
 describe("5. RealTokenYamUpgradeable view functions", function () {
   describe("5.1. View functions: getOfferCount/tokenInfo/showOffer/pricePreview", function () {
@@ -51,35 +49,19 @@ describe("5. RealTokenYamUpgradeable view functions", function () {
         usdcTokenTest.address,
         user1.address,
         ZERO_ADDRESS,
-        BigNumber.from(STABLE_RATE),
+        PRICE_STABLE_1,
       ]);
 
-      // Test function: showOffer (availablebalance)
-      // When allowance is inferior than user1 balance, the availablebalance is equal to the allowance
+      // Test function: showOffer (min(allowance, balance, amounts[offerId]))
       expect((await realTokenYamUpgradeable.showOffer(0))[5]).to.equal(
-        await usdcRealT.allowance(
-          user1.address,
-          realTokenYamUpgradeable.address
+        Math.min(
+          await usdcRealT.allowance(
+            user1.address,
+            realTokenYamUpgradeable.address
+          ),
+          Number(await usdcRealT.balanceOf(user1.address)),
+          (await realTokenYamUpgradeable.getInitialOffer(0))[5]
         )
-      );
-      // When allowance is inferior than user1 balance
-      await expect(
-        usdcRealT
-          .connect(user1)
-          .approve(
-            realTokenYamUpgradeable.address,
-            BigNumber.from(await usdcRealT.balanceOf(user1.address)).add(1)
-          )
-      )
-        .to.emit(usdcRealT, "Approval")
-        .withArgs(
-          user1.address,
-          realTokenYamUpgradeable.address,
-          BigNumber.from(await usdcRealT.balanceOf(user1.address)).add(1)
-        );
-
-      expect((await realTokenYamUpgradeable.showOffer(0))[5]).to.equal(
-        await usdcRealT.balanceOf(user1.address)
       );
     });
 
