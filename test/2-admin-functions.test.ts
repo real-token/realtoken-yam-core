@@ -239,4 +239,24 @@ describe("2. RealTokenYamUpgradeable admin functions", function () {
       ).to.equal(false);
     });
   });
+  describe("2.4. Admin can set fee", function () {
+    it("setFee: Admin can set fee", async function () {
+      const { realTokenYamUpgradeable, admin } = await loadFixture(makeSuite);
+
+      await expect(realTokenYamUpgradeable.connect(admin).setFee(100))
+        .to.emit(realTokenYamUpgradeable, "FeeChanged")
+        .withArgs(0, 100);
+    });
+    it("setFee: non-admin can not set fee", async function () {
+      const { realTokenYamUpgradeable, moderator } = await loadFixture(
+        makeSuite
+      );
+
+      await expect(
+        realTokenYamUpgradeable.connect(moderator).setFee(100)
+      ).to.be.revertedWith(
+        `AccessControl: account ${moderator.address.toLowerCase()} is missing role ${await realTokenYamUpgradeable.DEFAULT_ADMIN_ROLE()}`
+      );
+    });
+  });
 });

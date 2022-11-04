@@ -1,9 +1,7 @@
-import { USDCRealT } from "./../typechain/USDCRealT.d";
 import { expect } from "chai";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import {
   makeSuite,
-  makeSuiteWhitelist,
   makeSuiteWhitelistAndCreateOffer,
 } from "./helpers/make-suite";
 import { ZERO_ADDRESS } from "../helpers/constants";

@@ -68,14 +68,6 @@ contract RealTokenYamUpgradeable is
   /**
    * @dev Only whitelisted token can be used by functions marked by this modifier.
    **/
-  modifier onlyWhitelistedToken(address token_) {
-    require(whitelistedTokens[token_], "Token is not whitelisted");
-    _;
-  }
-
-  /**
-   * @dev Only whitelisted token can be used by functions marked by this modifier.
-   **/
   modifier onlyWhitelistTokenWithType(address token_) {
     require(
       tokenTypes[token_] != TokenType.NOTWHITELISTEDTOKEN,
@@ -93,21 +85,6 @@ contract RealTokenYamUpgradeable is
   }
 
   /// @inheritdoc	IRealTokenYamUpgradeable
-  function toggleWhitelist(address[] calldata tokens_, bool[] calldata status_)
-    external
-    override
-    onlyRole(DEFAULT_ADMIN_ROLE)
-  {
-    require(tokens_.length == status_.length, "Lengths are not equal");
-    uint256 length = tokens_.length;
-    for (uint256 i = 0; i < length; ) {
-      whitelistedTokens[tokens_[i]] = status_[i];
-      ++i;
-    }
-    emit TokenWhitelistToggled(tokens_, status_);
-  }
-
-  /// @inheritdoc	IRealTokenYamUpgradeable
   function toggleWhitelistWithType(
     address[] calldata tokens_,
     TokenType[] calldata types_
@@ -119,11 +96,6 @@ contract RealTokenYamUpgradeable is
       ++i;
     }
     emit TokenWhitelistWithTypeToggled(tokens_, types_);
-  }
-
-  /// @inheritdoc	IRealTokenYamUpgradeable
-  function isWhitelisted(address token_) external view override returns (bool) {
-    return whitelistedTokens[token_];
   }
 
   /// @inheritdoc	IRealTokenYamUpgradeable
@@ -230,16 +202,7 @@ contract RealTokenYamUpgradeable is
     uint256 price,
     uint256 amount
   ) public override whenNotPaused {
-    require(sellers[offerId] == msg.sender, "only the seller can change offer");
-    emit OfferUpdated(
-      offerId,
-      prices[offerId],
-      price,
-      amounts[offerId],
-      amount
-    );
-    prices[offerId] = price;
-    amounts[offerId] = amount;
+    _updateOffer(offerId, price, amount);
   }
 
   /// @inheritdoc	IRealTokenYamUpgradeable
@@ -252,22 +215,13 @@ contract RealTokenYamUpgradeable is
     bytes32 r,
     bytes32 s
   ) public override whenNotPaused {
-    require(sellers[offerId] == msg.sender, "only the seller can change offer");
-
-    emit OfferUpdated(
-      offerId,
-      prices[offerId],
-      price,
-      amounts[offerId],
-      amount
-    );
+    // Permit new amount
     uint256 amountToPermit = IBridgeToken(offerTokens[offerId]).allowance(
       msg.sender,
       address(this)
     ) +
       amount -
       amounts[offerId];
-
     IBridgeToken(offerTokens[offerId]).permit(
       msg.sender,
       address(this),
@@ -277,8 +231,8 @@ contract RealTokenYamUpgradeable is
       r,
       s
     );
-    prices[offerId] = price;
-    amounts[offerId] = amount;
+    // Then update the offer
+    _updateOffer(offerId, price, amount);
   }
 
   /// @inheritdoc	IRealTokenYamUpgradeable
@@ -631,7 +585,7 @@ contract RealTokenYamUpgradeable is
       "length mismatch"
     );
     for (uint256 i = 0; i < length; i++) {
-      updateOffer(_offerIds[i], _prices[i], _amounts[i]);
+      _updateOffer(_offerIds[i], _prices[i], _amounts[i]);
     }
   }
 

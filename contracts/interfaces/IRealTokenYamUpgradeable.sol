@@ -11,11 +11,11 @@ interface IRealTokenYamUpgradeable {
     ERC20WITHOUTPERMIT
   }
 
-  /**
-   * @dev Emitted after an offer is updated
-   * @param tokens the token addresses
-   **/
-  event TokenWhitelistToggled(address[] indexed tokens, bool[] indexed status);
+  // /**
+  //  * @dev Emitted after an offer is updated
+  //  * @param tokens the token addresses
+  //  **/
+  // event TokenWhitelistToggled(address[] indexed tokens, bool[] indexed status);
 
   /**
    * @dev Emitted after an offer is updated
@@ -296,13 +296,13 @@ interface IRealTokenYamUpgradeable {
     view
     returns (uint256);
 
-  /**
-   * @notice Whitelist or unwhitelist a token
-   * @param tokens The token addresses
-   * @param status The token whitelist status, true for whitelisted and false for unwhitelisted
-   **/
-  function toggleWhitelist(address[] calldata tokens, bool[] calldata status)
-    external;
+  // /**
+  //  * @notice Whitelist or unwhitelist a token
+  //  * @param tokens The token addresses
+  //  * @param status The token whitelist status, true for whitelisted and false for unwhitelisted
+  //  **/
+  // function toggleWhitelist(address[] calldata tokens, bool[] calldata status)
+  //   external;
 
   /**
    * @notice Whitelist or unwhitelist a token
@@ -314,12 +314,12 @@ interface IRealTokenYamUpgradeable {
     TokenType[] calldata types
   ) external;
 
-  /**
-   * @notice Returns whether the token is whitelisted
-   * @param token The token address
-   * @return true if the token is whitelisted, false otherwise
-   **/
-  function isWhitelisted(address token) external view returns (bool);
+  // /**
+  //  * @notice Returns whether the token is whitelisted
+  //  * @param token The token address
+  //  * @return true if the token is whitelisted, false otherwise
+  //  **/
+  // function isWhitelisted(address token) external view returns (bool);
 
   /**
    * @notice In case someone wrongfully directly sends erc20 to this contract address, the moderator can move them out
