@@ -21,3 +21,4 @@ export const PRICE_REALTOKEN_1 = BigNumber.from("55000000"); // 55 USD per RTT
 export const PRICE_REALTOKEN_2 = BigNumber.from("60000000"); // 60 USD per RTT
 export const AMOUNT_OFFER_REALTOKEN = BigNumber.from("500000000000000000000"); // 500 RTT
 export const AMOUNT_APPROVAL_REALTOKEN = BigNumber.from("10000000000000000000"); // 1000 RTT
+export const AMOUNT_OFFER_REALTOKEN_2 = BigNumber.from("700000000000000000000"); // 700 RTT
