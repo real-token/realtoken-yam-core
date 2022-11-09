@@ -8,7 +8,7 @@ export const AMOUNT_MINT_REALTOKEN = BigNumber.from(
 export const AMOUNT_TRANSFER_REALTOKEN = BigNumber.from(
   "1000000000000000000000"
 ); // 1000 RTT
-export const AMOUNT_TRANSFER_STABLE = BigNumber.from("1000000000"); // 1000 USDC
+export const AMOUNT_TRANSFER_STABLE = BigNumber.from("100000000000"); // 100000 USDC
 
 export const PRICE_STABLE_1 = BigNumber.from("1000000");
 export const AMOUNT_OFFER_STABLE_1 = BigNumber.from("500000000"); // 500 RTT

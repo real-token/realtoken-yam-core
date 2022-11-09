@@ -1,4 +1,4 @@
-import { BigNumberish, Signature } from "ethers";
+import { BigNumberish, Contract, Signature } from "ethers";
 import { splitSignature } from "ethers/lib/utils";
 import { CoinBridgeToken, USDCRealT } from "../../../typechain";
 
@@ -72,7 +72,7 @@ export async function getPermitSignatureERC20(
   spender: string,
   value: BigNumberish,
   deadline: BigNumberish,
-  token: CoinBridgeToken | USDCRealT,
+  token: CoinBridgeToken | USDCRealT | Contract,
   permitConfig?: {
     nonce?: BigNumberish;
     name?: string;

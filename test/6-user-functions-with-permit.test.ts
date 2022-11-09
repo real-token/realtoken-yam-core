@@ -10,8 +10,10 @@ import {
   PRICE_REALTOKEN_1,
   PRICE_REALTOKEN_2,
 } from "./helpers/constants";
-import { getPermitSignatureRealToken } from "./helpers/utils/getPermitSignature";
-import { any } from "hardhat/internal/core/params/argumentTypes";
+import {
+  getPermitSignatureERC20,
+  getPermitSignatureRealToken,
+} from "./helpers/utils/getPermitSignature";
 
 describe("6. RealTokenYamUpgradeable user function using permit", function () {
   describe("6.1. CreateOfferWithPermit", function () {
@@ -186,13 +188,14 @@ describe("6. RealTokenYamUpgradeable user function using permit", function () {
     });
   });
 
-  describe("6.2. UpdateOfferWithPermit", function () {
-    it("UpdateOfferWithPermit: succeed when isTransferValid is true", async function () {
+  describe("6.3. BuyWithPermit", function () {
+    it("BuyWithPermit: succeed when isTransferValid is true", async function () {
       const {
         bridgeToken,
         usdcRealT,
         realTokenYamUpgradeable,
         user1,
+        user2,
         unlockTime,
       } = await loadFixture(makeSuiteWhitelistAndCreateOffer);
 
@@ -222,7 +225,7 @@ describe("6. RealTokenYamUpgradeable user function using permit", function () {
           .createOfferWithPermit(
             bridgeToken.address,
             usdcRealT.address,
-            ZERO_ADDRESS,
+            user2.address,
             PRICE_REALTOKEN_1,
             AMOUNT_OFFER_REALTOKEN,
             transactionDeadline,
@@ -236,166 +239,50 @@ describe("6. RealTokenYamUpgradeable user function using permit", function () {
           bridgeToken.address,
           usdcRealT.address,
           user1.address,
-          ZERO_ADDRESS,
+          user2.address,
           offerCount,
           PRICE_REALTOKEN_1,
           AMOUNT_OFFER_REALTOKEN
         );
 
-      const updatePermitAmount = BigNumber.from(
-        await bridgeToken.allowance(
-          user1.address,
-          realTokenYamUpgradeable.address
-        )
-      )
-        .add(AMOUNT_OFFER_REALTOKEN_2)
-        .sub(AMOUNT_OFFER_REALTOKEN);
+      const buyPermitAmount = AMOUNT_OFFER_REALTOKEN.mul(PRICE_REALTOKEN_1).div(
+        BigNumber.from(10).pow(await bridgeToken.decimals())
+      );
+      console.log("buyPermitAmount", buyPermitAmount.toString());
 
-      const updateSig = await getPermitSignatureRealToken(
-        user1,
+      const buySig = await getPermitSignatureERC20(
+        user2,
         realTokenYamUpgradeable.address,
-        updatePermitAmount,
+        buyPermitAmount,
         transactionDeadline,
-        bridgeToken
+        usdcRealT
       );
 
       await expect(
         realTokenYamUpgradeable
-          .connect(user1)
-          .updateOfferWithPermit(
+          .connect(user2)
+          .buyWithPermit(
             offerCount,
-            PRICE_REALTOKEN_2,
-            AMOUNT_OFFER_REALTOKEN_2,
+            PRICE_REALTOKEN_1,
+            AMOUNT_OFFER_REALTOKEN,
             transactionDeadline,
-            updateSig.v,
-            updateSig.r,
-            updateSig.s
+            buySig.v,
+            buySig.r,
+            buySig.s
           )
       )
-        .to.emit(realTokenYamUpgradeable, "OfferUpdated")
+        .to.emit(realTokenYamUpgradeable, "OfferAccepted")
         .withArgs(
           offerCount,
+          user1.address,
+          user2.address,
+          bridgeToken.address,
+          usdcRealT.address,
           PRICE_REALTOKEN_1,
-          PRICE_REALTOKEN_2,
-          AMOUNT_OFFER_REALTOKEN,
-          AMOUNT_OFFER_REALTOKEN_2
+          AMOUNT_OFFER_REALTOKEN
         );
     });
   });
-
-  // describe("3.1. Create/Update/Delete Offer", function () {
-  //   it("Create Offer: should revert when the tokens are not whitelisted", async function () {
-  //     const { bridgeToken, usdcTokenTest, realTokenYamUpgradeable } =
-  //       await loadFixture(makeSuite);
-
-  //     await expect(
-  //       realTokenYamUpgradeable.createOffer(
-  //         bridgeToken.address,
-  //         usdcTokenTest.address,
-  //         ZERO_ADDRESS,
-  //         10,
-  //         BigNumber.from("1000000000000000000000")
-  //       )
-  //     ).to.be.revertedWith("Token is not whitelisted");
-  //   });
-
-  //   it("Update offer: seller should be able to update the offer", async function () {
-  //     const {
-  //       usdcTokenTest,
-  //       bridgeToken,
-  //       realTokenYamUpgradeable,
-  //       user1,
-  //       unlockTime,
-  //     } = await loadFixture(makeSuiteWhitelistAndCreateOffer);
-
-  //     // // Increase time to unlockTime
-  //     // await time.increaseTo(unlockTime);
-
-  //     // await expect(
-  //     //   realTokenYamUpgradeable
-  //     //     .connect(user1)
-  //     //     .updateOffer(1, 100, BigNumber.from("2000000000000000000000"))
-  //     // )
-  //     //   .to.emit(realTokenYamUpgradeable, "OfferUpdated")
-  //     //   .withArgs(
-  //     //     1,
-  //     //     55000000, // old price
-  //     //     100, // new price
-  //     //     BigNumber.from("1000000000000000000000"), // old amount
-  //     //     BigNumber.from("2000000000000000000000") // new amount
-  //     //   );
-
-  //     // expect(
-  //     //   (await realTokenYamUpgradeable.getInitialOffer(1)).slice(0, 6)
-  //     // ).to.eql([
-  //     //   bridgeToken.address,
-  //     //   usdcTokenTest.address,
-  //     //   user1.address,
-  //     //   ZERO_ADDRESS,
-  //     //   BigNumber.from(100),
-  //     //   BigNumber.from("2000000000000000000000"),
-  //     // ]);
-  //   });
-
-  //   it("Update offer: non-seller should not be able to update the offer", async function () {
-  //     const { realTokenYamUpgradeable, user2 } = await loadFixture(
-  //       makeSuiteWhitelistAndCreateOffer
-  //     );
-
-  //     // Revert when user 2 modifies the price of the second offer, offerId = 1
-  //     await expect(
-  //       realTokenYamUpgradeable
-  //         .connect(user2)
-  //         .updateOffer(1, 20, BigNumber.from("1000000000000000000000"))
-  //     ).to.revertedWith("only the seller can change offer");
-  //   });
-
-  //   it("Delete Offer: seller should be able to delete the offer", async function () {
-  //     const { realTokenYamUpgradeable, user1 } = await loadFixture(
-  //       makeSuiteWhitelistAndCreateOffer
-  //     );
-
-  //     // Emit the "OfferDeleted" event when user 1 deletes the price of the second offer, offerId = 2
-  //     await expect(realTokenYamUpgradeable.connect(user1).deleteOffer(1))
-  //       .to.emit(realTokenYamUpgradeable, "OfferDeleted")
-  //       .withArgs(1);
-  //   });
-
-  //   it("DeleteOffer: non-seller should not be able to delete offer", async function () {
-  //     const { realTokenYamUpgradeable, user2 } = await loadFixture(
-  //       makeSuiteWhitelistAndCreateOffer
-  //     );
-
-  //     // Revert when user 2 deletes the offer, offerId = 1
-  //     await expect(
-  //       realTokenYamUpgradeable.connect(user2).deleteOffer(1)
-  //     ).to.revertedWith("only the seller can delete offer");
-  //   });
-  //   it("deleteOfferByAdmin: admin can call this function", async function () {
-  //     const { realTokenYamUpgradeable, admin } = await loadFixture(
-  //       makeSuiteWhitelistAndCreateOffer
-  //     );
-
-  //     // Admin deletes the offer, offerId = 1
-  //     await expect(realTokenYamUpgradeable.connect(admin).deleteOfferByAdmin(1))
-  //       .to.emit(realTokenYamUpgradeable, "OfferDeleted")
-  //       .withArgs(1);
-  //   });
-
-  //   it("deleteOfferByAdmin: non-admin can not call this function", async function () {
-  //     const { realTokenYamUpgradeable, user1 } = await loadFixture(
-  //       makeSuiteWhitelistAndCreateOffer
-  //     );
-
-  //     // Test function: deleteOfferByAdmin
-  //     // Revert when user 1 deletes the offer using deleteOfferByAdmin, offerId = 1
-  //     await expect(
-  //       realTokenYamUpgradeable.connect(user1).deleteOfferByAdmin(1)
-  //     ).to.revertedWith(
-  //       `AccessControl: account ${user1.address.toLowerCase()} is missing role ${await realTokenYamUpgradeable.DEFAULT_ADMIN_ROLE()}`
-  //     );
-  //   });
-  // });
 
   // describe("3.2. Buy function with checking transfer validity", function () {
   //   it("Function buy: should revert when price is wrong", async function () {

@@ -259,4 +259,37 @@ describe("2. RealTokenYamUpgradeable admin functions", function () {
       );
     });
   });
+  describe("2.5", function () {
+    it("Pause function: non-admin can not call pause function, admin can call pause function", async function () {
+      const { realTokenYamUpgradeable, admin, moderator } = await loadFixture(
+        makeSuite
+      );
+
+      await expect(
+        realTokenYamUpgradeable.connect(moderator).pause()
+      ).to.be.revertedWith(
+        `AccessControl: account ${moderator.address.toLowerCase()} is missing role ${await realTokenYamUpgradeable.DEFAULT_ADMIN_ROLE()}`
+      );
+      await expect(realTokenYamUpgradeable.connect(admin).pause()).to.emit(
+        realTokenYamUpgradeable,
+        "Paused"
+      );
+    });
+    it("Unpause function: non-admin can not call unpause function, admin can call unpause function", async function () {
+      const { realTokenYamUpgradeable, admin, moderator } = await loadFixture(
+        makeSuite
+      );
+      await realTokenYamUpgradeable.connect(admin).pause();
+
+      await expect(
+        realTokenYamUpgradeable.connect(moderator).unpause()
+      ).to.be.revertedWith(
+        `AccessControl: account ${moderator.address.toLowerCase()} is missing role ${await realTokenYamUpgradeable.DEFAULT_ADMIN_ROLE()}`
+      );
+      await expect(realTokenYamUpgradeable.connect(admin).unpause()).to.emit(
+        realTokenYamUpgradeable,
+        "Unpaused"
+      );
+    });
+  });
 });
