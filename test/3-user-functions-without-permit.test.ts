@@ -13,8 +13,8 @@ import {
 } from "./helpers/constants";
 import { BigNumber } from "ethers";
 
-describe("4. RealTokenYamUpgradeable user function without permit", function () {
-  describe("4.1. Create/Update/Delete Offer", function () {
+describe("3. RealTokenYamUpgradeable user function without permit", function () {
+  describe("3.1. Create/Update/Delete Offer", function () {
     it("Create Offer: should create an offer when both tokens are whitelisted", async function () {
       const { usdcRealT, usdcTokenTest, realTokenYamUpgradeable, admin } =
         await loadFixture(makeSuite);
@@ -86,7 +86,7 @@ describe("4. RealTokenYamUpgradeable user function without permit", function () 
     });
   });
 
-  describe("4.2. Update Offer", function () {
+  describe("3.2. Update Offer", function () {
     it("Update offer: seller should be able to update the offer", async function () {
       const { usdcTokenTest, usdcRealT, realTokenYamUpgradeable, user1 } =
         await loadFixture(makeSuiteWhitelistAndCreateOffer);
@@ -131,7 +131,7 @@ describe("4. RealTokenYamUpgradeable user function without permit", function () 
     });
   });
 
-  describe("4.3. Delete Offer", function () {
+  describe("3.3. Delete Offer", function () {
     it("Delete Offer: seller should be able to delete the offer", async function () {
       const { realTokenYamUpgradeable, user1 } = await loadFixture(
         makeSuiteWhitelistAndCreateOffer
@@ -179,7 +179,7 @@ describe("4. RealTokenYamUpgradeable user function without permit", function () 
     });
   });
 
-  describe("4.2. Buy function with checking transfer validity", function () {
+  describe("3.4. Buy function with checking transfer validity", function () {
     it("Function buy: should revert when price is wrong", async function () {
       const { realTokenYamUpgradeable, user2 } = await loadFixture(
         makeSuiteWhitelistAndCreateOffer
@@ -195,7 +195,6 @@ describe("4. RealTokenYamUpgradeable user function without permit", function () 
         usdcRealT,
         usdcTokenTest,
         realTokenYamUpgradeable,
-        admin,
         user1,
         user2,
       } = await loadFixture(makeSuiteWhitelistAndCreateOffer);
