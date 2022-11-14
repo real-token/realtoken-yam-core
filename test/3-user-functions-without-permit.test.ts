@@ -16,13 +16,18 @@ import { BigNumber } from "ethers";
 describe("3. RealTokenYamUpgradeable user function without permit", function () {
   describe("3.1. Create/Update/Delete Offer", function () {
     it("Create Offer: should create an offer when both tokens are whitelisted", async function () {
-      const { usdcRealT, usdcTokenTest, realTokenYamUpgradeable, admin } =
-        await loadFixture(makeSuite);
+      const {
+        bridgeToken,
+        usdcRealT,
+        usdcTokenTest,
+        realTokenYamUpgradeable,
+        admin,
+      } = await loadFixture(makeSuite);
 
       await expect(
         realTokenYamUpgradeable.toggleWhitelistWithType(
-          [usdcRealT.address, usdcTokenTest.address],
-          [3, 3]
+          [bridgeToken.address, usdcRealT.address, usdcTokenTest.address],
+          [1, 3, 3]
         )
       )
         .to.emit(realTokenYamUpgradeable, "TokenWhitelistWithTypeToggled")
@@ -68,6 +73,16 @@ describe("3. RealTokenYamUpgradeable user function without permit", function () 
           PRICE_STABLE_2,
           AMOUNT_OFFER_STABLE_2
         );
+
+      await expect(
+        realTokenYamUpgradeable.createOffer(
+          bridgeToken.address,
+          usdcTokenTest.address,
+          ZERO_ADDRESS,
+          PRICE_STABLE_2,
+          AMOUNT_OFFER_STABLE_2
+        )
+      ).to.revertedWith("Use permit methode for RealToken");
     });
 
     it("Create Offer: should revert when the tokens are not whitelisted", async function () {

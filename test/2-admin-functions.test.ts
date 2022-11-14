@@ -39,6 +39,34 @@ describe("2. RealTokenYamUpgradeable admin functions", function () {
       ).to.equal(0);
     });
 
+    it("Whitelist/unWhitelist: should revert when length are not equal", async function () {
+      const { bridgeToken, usdcRealT, realTokenYamUpgradeable } =
+        await loadFixture(makeSuite);
+      await expect(
+        realTokenYamUpgradeable.toggleWhitelistWithType(
+          [bridgeToken.address, usdcRealT.address],
+          [1]
+        )
+      ).to.revertedWith("Lengths are not equal");
+
+      // expect(
+      //   await realTokenYamUpgradeable.getTokenType(bridgeToken.address)
+      // ).to.equal(1);
+
+      // await expect(
+      //   realTokenYamUpgradeable.toggleWhitelistWithType(
+      //     [bridgeToken.address],
+      //     [0]
+      //   )
+      // )
+      //   .to.emit(realTokenYamUpgradeable, "TokenWhitelistToggled")
+      //   .withArgs([bridgeToken.address], [0]).to.not.reverted;
+
+      // expect(
+      //   await realTokenYamUpgradeable.getTokenType(bridgeToken.address)
+      // ).to.equal(0);
+    });
+
     it("Whitelist/unWhitelist: should not work with other address", async function () {
       const { bridgeToken, realTokenYamUpgradeable, user1 } = await loadFixture(
         makeSuite

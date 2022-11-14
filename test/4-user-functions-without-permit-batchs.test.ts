@@ -49,6 +49,16 @@ describe("4. RealTokenYamUpgradeable user function without permit", function () 
           PRICE_STABLE_1,
           AMOUNT_OFFER_STABLE_1
         );
+
+      await expect(
+        realTokenYamUpgradeable.createOfferBatch(
+          [usdcRealT.address, usdcRealT.address],
+          [usdcTokenTest.address, usdcRealT.address],
+          [ZERO_ADDRESS],
+          [PRICE_STABLE_1, PRICE_STABLE_2],
+          [AMOUNT_OFFER_STABLE_1, AMOUNT_OFFER_STABLE_2]
+        )
+      ).to.revertedWith("length mismatch");
     });
   });
 
@@ -81,6 +91,12 @@ describe("4. RealTokenYamUpgradeable user function without permit", function () 
         PRICE_STABLE_2,
         AMOUNT_OFFER_STABLE_2,
       ]);
+
+      await expect(
+        realTokenYamUpgradeable
+          .connect(user1)
+          .updateOfferBatch([0, 1], [PRICE_STABLE_2], [AMOUNT_OFFER_STABLE_2])
+      ).to.revertedWith("length mismatch");
     });
 
     it("Update offer batch: non-seller should not be able to update the offer", async function () {
@@ -177,6 +193,16 @@ describe("4. RealTokenYamUpgradeable user function without permit", function () 
         "User2 USDCRealT balance: ",
         await usdcRealT.balanceOf(user2.address)
       );
+
+      await expect(
+        realTokenYamUpgradeable
+          .connect(user2)
+          .buyOfferBatch(
+            [0],
+            [PRICE_STABLE_1, PRICE_STABLE_1],
+            [BigNumber.from("100000000"), BigNumber.from("100000000")]
+          ) // buy 100 USDCRealT
+      ).to.revertedWith("length mismatch");
     });
   });
 });

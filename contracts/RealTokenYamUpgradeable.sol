@@ -558,9 +558,10 @@ contract RealTokenYamUpgradeable is
     uint256 length = _offerTokens.length;
     require(
       _buyerTokens.length == length &&
+        _buyers.length == length &&
         _prices.length == length &&
         _amounts.length == length,
-      "invalid input"
+      "length mismatch"
     );
     for (uint256 i = 0; i < length; i++) {
       _createOffer(
