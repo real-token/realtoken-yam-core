@@ -3,14 +3,12 @@ pragma solidity ^0.8.0;
 
 import { IERC20 } from "./interfaces/IERC20.sol";
 import "./interfaces/IRealTokenYamUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 contract RealTokenYamUpgradeable is
-  Initializable,
   PausableUpgradeable,
   AccessControlUpgradeable,
   UUPSUpgradeable,
@@ -20,15 +18,20 @@ contract RealTokenYamUpgradeable is
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
   bytes32 public constant MODERATOR_ROLE = keccak256("MODERATOR_ROLE");
 
-  mapping(uint256 => uint256) internal prices;
-  mapping(uint256 => uint256) internal amounts;
-  mapping(uint256 => address) internal offerTokens;
-  mapping(uint256 => address) internal buyerTokens;
-  mapping(uint256 => address) internal sellers;
-  mapping(uint256 => address) internal buyers;
-  mapping(address => TokenType) internal tokenTypes;
-  uint256 internal offerCount;
+  mapping(uint256 => uint256) private prices;
+  mapping(uint256 => uint256) private amounts;
+  mapping(uint256 => address) private offerTokens;
+  mapping(uint256 => address) private buyerTokens;
+  mapping(uint256 => address) private sellers;
+  mapping(uint256 => address) private buyers;
+  mapping(address => TokenType) private tokenTypes;
+  uint256 private offerCount;
   uint256 public fee; // fee in basis points
+
+  /// @custom:oz-upgrades-unsafe-allow constructor
+  constructor() {
+    _disableInitializers();
+  }
 
   /// @notice the initialize function to execute only once during the contract deployment
   /// @param admin_ address of the default admin account: whitelist tokens, delete frozen offers, upgrade the contract
