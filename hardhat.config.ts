@@ -115,7 +115,11 @@ const config: HardhatUserConfig = {
     currency: "USD",
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
+    apiKey: {
+      mainnet: process.env.ETHERSCAN_API_KEY as string,
+      goerli: process.env.ETHERSCAN_API_KEY as string,
+      gnosis: process.env.GNOSISSCAN_API_KEY as string,
+    },
   },
   contractSizer: {
     alphaSort: true,
