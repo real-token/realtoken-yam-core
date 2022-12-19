@@ -19,10 +19,6 @@ tmp
 propertyTree*.json
 
 .openzeppelin/*
-# Kovan Proxy
-!.openzeppelin/kovan.json
-# Rinkeby Proxy
-!.openzeppelin/rinkeby.json
 # Goerli Proxy
 !.openzeppelin/goerli.json
 # Ethereum Proxy

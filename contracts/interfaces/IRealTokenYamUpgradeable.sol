@@ -4,11 +4,21 @@ import "./IBridgeToken.sol";
 import "./IComplianceRegistry.sol";
 
 interface IRealTokenYamUpgradeable {
+  enum TokenType {
+    NOTWHITELISTEDTOKEN,
+    REALTOKEN,
+    ERC20WITHPERMIT,
+    ERC20WITHOUTPERMIT
+  }
+
   /**
    * @dev Emitted after an offer is updated
    * @param tokens the token addresses
    **/
-  event TokenWhitelistToggled(address[] indexed tokens, bool[] indexed status);
+  event TokenWhitelistWithTypeToggled(
+    address[] indexed tokens,
+    TokenType[] indexed types
+  );
 
   /**
    * @dev Emitted after an offer is created
@@ -204,6 +214,12 @@ interface IRealTokenYamUpgradeable {
   function getOfferCount() external view returns (uint256);
 
   /**
+   * @notice Returns the offer count
+   * @return offerCount The offer count
+   **/
+  function getTokenType(address token) external view returns (TokenType);
+
+  /**
    * @notice Returns the token information: decimals, symbole, name
    * @param tokenAddress The address of the reference asset of the distribution
    * @return The decimals of the token
@@ -277,17 +293,12 @@ interface IRealTokenYamUpgradeable {
   /**
    * @notice Whitelist or unwhitelist a token
    * @param tokens The token addresses
-   * @param status The token whitelist status, true for whitelisted and false for unwhitelisted
+   * @param types The token whitelist status, true for whitelisted and false for unwhitelisted
    **/
-  function toggleWhitelist(address[] calldata tokens, bool[] calldata status)
-    external;
-
-  /**
-   * @notice Returns whether the token is whitelisted
-   * @param token The token address
-   * @return true if the token is whitelisted, false otherwise
-   **/
-  function isWhitelisted(address token) external view returns (bool);
+  function toggleWhitelistWithType(
+    address[] calldata tokens,
+    TokenType[] calldata types
+  ) external;
 
   /**
    * @notice In case someone wrongfully directly sends erc20 to this contract address, the moderator can move them out

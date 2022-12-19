@@ -14,33 +14,6 @@ if (process.env.MAINNET_RPC_URL && process.env.PRIVATE_KEY) {
   };
 }
 
-if (process.env.KOVAN_RPC_URL && process.env.PRIVATE_KEY) {
-  networks.kovan = {
-    url: process.env.KOVAN_RPC_URL,
-    chainId: 42,
-    gasPrice: 2500000000,
-    accounts: [process.env.PRIVATE_KEY],
-  };
-}
-
-if (process.env.ROPSTEN_RPC_URL && process.env.PRIVATE_KEY) {
-  networks.ropsten = {
-    url: process.env.ROPSTEN_RPC_URL,
-    chainId: 3,
-    gasPrice: 1000000000,
-    accounts: [process.env.PRIVATE_KEY],
-  };
-}
-
-if (process.env.RINKEBY_RPC_URL && process.env.PRIVATE_KEY) {
-  networks.rinkeby = {
-    url: process.env.RINKEBY_RPC_URL,
-    chainId: 4,
-    gasPrice: 1000000000,
-    accounts: [process.env.PRIVATE_KEY],
-  };
-}
-
 if (process.env.GOERLI_RPC_URL && process.env.PRIVATE_KEY) {
   networks.goerli = {
     url: process.env.GOERLI_RPC_URL,

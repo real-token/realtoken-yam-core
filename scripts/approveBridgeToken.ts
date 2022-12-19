@@ -5,8 +5,8 @@ dotenv.config();
 
 // Token address
 const bridgeToken = process.env.BRIDGE_PROXY_ADDRESS as string;
-// SwapCat contract address
-const swapCat = process.env.SWAPCAT_PROXY_ADDRESS;
+// RealTokenYamUpgradeable contract address
+const yam = process.env.YAM_PROXY_ADDRESS;
 const amount = process.env.APPROVE_AMOUNT; // approve 10 BTT
 async function main() {
   let wallet = new ethers.Wallet(process.env.PRIVATE_KEY as string);
@@ -17,8 +17,8 @@ async function main() {
   wallet = wallet.connect(provider);
   const abi = ["function approve(address _spender, uint256 _value) external"];
   const brigdTokenContract = new ethers.Contract(bridgeToken, abi, wallet);
-  const tx1 = await brigdTokenContract.approve(swapCat, amount);
-  console.log("User approve swapCat to use bridgeToken", tx1);
+  const tx1 = await brigdTokenContract.approve(yam, amount);
+  console.log("User approve Yam to use bridgeToken", tx1);
 }
 
 main().catch((error) => {
