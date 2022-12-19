@@ -93,14 +93,65 @@
    npx hardhat --help
    ```
 
-   > Hardhat Getting Started [here](https://hardhat.org/getting-started#running-tasks)
+5. Deploy contract
+
+   Use this command to deploy the Yam contract using private key (replace networkId with hardhat, goerli, mainnet, gnosis)
+
+   ```
+   npm run deploy:realtokenYam::networkId
+   ```
+
+   or this command to deploy the Yam contract using hardware wallet via Frame (replace networkId with hardhat, goerli, mainnet, gnosis)
+
+   ```
+   npm run deployFrame:realtokenYam::networkId
+   ```
+
+> Hardhat Getting Started [here](https://hardhat.org/getting-started#running-tasks)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-<!-- USAGE EXAMPLES -->
+### Pause/unpause
 
-> Have fun
+Admin can use pause/unpause functions to pause/unpause user functionnalities on the contract (create, update, delete, buy offer).
 
+The admin functionnalities are still callable.
+
+### Whitelist token
+
+Use admin wallet to call toggleWhitelistWithType function:
+
+toggleWhitelistWithType(address[] tokens, uint8[] types)
+
+By default, type = 0 which means the token is not whitelisted
+
+type 1 = RealToken
+
+type 2 = Other token that have permit function
+
+type 3 = Other token that does not have permit function
+
+For example, to whitelist these 4 tokens (testnet):
+
+RealToken S 14078 Carlisle St Detroit MI: 0xF1AAaCdB0E5acd8f725b4f1eB33e4d976bAE87A7
+
+RealToken S 15777 Ardmore St Detroit MI: 0x7401F1A495c4d13aF56fd1d880F1aA646FD1017C
+
+USDCRealT (permit): 0x3e7493506Bc350Ed7f5344196B1842185753bde1
+
+USDCTest (non permit): 0x31f3bEB82969825F8d2699b9f1191A0618526773
+
+We need to call toggleWhitelistWithType with 2 below arrays as input:
+
+```
+["0xF1AAaCdB0E5acd8f725b4f1eB33e4d976bAE87A7","0x7401F1A495c4d13aF56fd1d880F1aA646FD1017C","0x3e7493506Bc350Ed7f5344196B1842185753bde1","0x31f3bEB82969825F8d2699b9f1191A0618526773"]
+
+[1,1,2,3]
+```
+
+Using Etherscan/Gnosisscan:
+
+<img src="images/yam_whitelist_array.png" alt="Whitelist">
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- AUDIT -->
@@ -161,7 +212,7 @@ npx hardhat test
 
 ## Usage
 
-Deployed addresses on Goerli testnet:
+Deployed addresses on Goerli testnet (these are old testnet addresses, to find updated official testnet tokens, use shared drive docs):
 
 AdminProxy: 0xc7f8c34680913ee5b5839da58b2013b731a8f437
 
