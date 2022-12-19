@@ -26,10 +26,9 @@ contract RealTokenYamUpgradeable is
   mapping(uint256 => address) internal buyerTokens;
   mapping(uint256 => address) internal sellers;
   mapping(uint256 => address) internal buyers;
-  mapping(address => bool) internal whitelistedTokens;
+  mapping(address => TokenType) internal tokenTypes;
   uint256 internal offerCount;
   uint256 public fee; // fee in basis points
-  mapping(address => TokenType) internal tokenTypes;
 
   /// @notice the initialize function to execute only once during the contract deployment
   /// @param admin_ address of the default admin account: whitelist tokens, delete frozen offers, upgrade the contract
@@ -105,7 +104,7 @@ contract RealTokenYamUpgradeable is
     address buyer,
     uint256 price,
     uint256 amount
-  ) external override whenNotPaused {
+  ) public override whenNotPaused {
     require(
       tokenTypes[offerToken] != TokenType.REALTOKEN,
       "Use permit methode for RealToken"
@@ -155,7 +154,7 @@ contract RealTokenYamUpgradeable is
     uint256 offerId,
     uint256 price,
     uint256 amount
-  ) external override whenNotPaused {
+  ) public override whenNotPaused {
     _buy(offerId, price, amount);
   }
 
@@ -564,7 +563,7 @@ contract RealTokenYamUpgradeable is
       "length mismatch"
     );
     for (uint256 i = 0; i < length; i++) {
-      _createOffer(
+      createOffer(
         _offerTokens[i],
         _buyerTokens[i],
         _buyers[i],
@@ -613,76 +612,7 @@ contract RealTokenYamUpgradeable is
       "length mismatch"
     );
     for (uint256 i = 0; i < length; i++) {
-      _buy(_offerIds[i], _prices[i], _amounts[i]);
+      buy(_offerIds[i], _prices[i], _amounts[i]);
     }
-  }
-
-  //TODO 5: test this with UI
-  function buyWithNativeCurrency(
-    uint256 _offerId,
-    uint256 _price,
-    uint256 _amount
-  ) external payable whenNotPaused {
-    if (buyers[_offerId] != address(0)) {
-      require(buyers[_offerId] == msg.sender, "private offer");
-    }
-    require(
-      buyerTokens[_offerId] == address(0),
-      "buyer token not native currency"
-    );
-
-    address seller = sellers[_offerId];
-    address offerToken = offerTokens[_offerId];
-
-    IERC20 offerTokenInterface = IERC20(offerToken);
-
-    // given price is being checked with recorded data from mappings
-    require(prices[_offerId] == _price, "offer price wrong");
-
-    // Check if the transfer is valid
-    require(
-      _isTransferValid(offerToken, seller, msg.sender, _amount),
-      "transfer is not valid"
-    );
-    // calculate the price of the order
-    require(_amount <= amounts[_offerId], "amount too high");
-    require(
-      _amount * _price > (uint256(10)**offerTokenInterface.decimals()),
-      "amount too low"
-    );
-    uint256 buyerTokenAmount = (_amount * _price) /
-      (uint256(10)**offerTokenInterface.decimals());
-
-    // some old erc20 tokens give no return value so we must work around by getting their balance before and after the exchange
-    uint256 oldBuyerBalance = payable(msg.sender).balance;
-    uint256 oldSellerBalance = offerTokenInterface.balanceOf(seller);
-
-    // Update amount in mapping
-    amounts[_offerId] = amounts[_offerId] - _amount;
-
-    // finally do the exchange: send the offer token to the buyer and the native currency to the seller
-    offerTokenInterface.transferFrom(seller, msg.sender, _amount);
-    require(msg.value == buyerTokenAmount, "wrong amount sent");
-    (bool sent, ) = seller.call{ value: msg.value }("");
-    require(sent, "Failed to send Ether");
-
-    // now check if the balances changed on both accounts.
-    // we do not check for exact amounts since some tokens behave differently with fees, burnings, etc
-    // we assume if both balances are higher than before all is good
-    require(oldBuyerBalance > payable(msg.sender).balance, "buyer error");
-    require(
-      oldSellerBalance > offerTokenInterface.balanceOf(seller),
-      "seller error"
-    );
-
-    emit OfferAccepted(
-      _offerId,
-      seller,
-      msg.sender,
-      offerToken,
-      address(0), // buyer token is native currency
-      _price,
-      _amount
-    );
   }
 }

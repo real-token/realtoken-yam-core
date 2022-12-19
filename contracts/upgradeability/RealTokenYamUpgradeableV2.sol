@@ -26,10 +26,9 @@ contract RealTokenYamUpgradeableV2 is
   mapping(uint256 => address) internal buyerTokens;
   mapping(uint256 => address) internal sellers;
   mapping(uint256 => address) internal buyers;
-  mapping(address => bool) internal whitelistedTokens;
+  mapping(address => TokenType) internal tokenTypes;
   uint256 internal offerCount;
   uint256 public fee; // fee in basis points
-  mapping(address => TokenType) internal tokenTypes;
 
   /// @notice the initialize function to execute only once during the contract deployment
   /// @param admin_ address of the default admin account: whitelist tokens, delete frozen offers, upgrade the contract
@@ -558,9 +557,10 @@ contract RealTokenYamUpgradeableV2 is
     uint256 length = _offerTokens.length;
     require(
       _buyerTokens.length == length &&
+        _buyers.length == length &&
         _prices.length == length &&
         _amounts.length == length,
-      "invalid input"
+      "length mismatch"
     );
     for (uint256 i = 0; i < length; i++) {
       _createOffer(
