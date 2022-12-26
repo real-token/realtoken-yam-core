@@ -2,18 +2,18 @@
 pragma solidity ^0.8.0;
 
 import { IERC20 } from "../interfaces/IERC20.sol";
-import "../interfaces/IRealTokenYamUpgradeable.sol";
+import "../interfaces/IRealTokenYamUpgradeableV1.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
-contract RealTokenYamUpgradeableV2 is
+contract RealTokenYamUpgradeableV1 is
   PausableUpgradeable,
   AccessControlUpgradeable,
   UUPSUpgradeable,
   ReentrancyGuardUpgradeable,
-  IRealTokenYamUpgradeable
+  IRealTokenYamUpgradeableV1
 {
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
   bytes32 public constant MODERATOR_ROLE = keccak256("MODERATOR_ROLE");
@@ -86,7 +86,7 @@ contract RealTokenYamUpgradeableV2 is
     _unpause();
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
+  /// @inheritdoc	IRealTokenYamUpgradeableV1
   function toggleWhitelistWithType(
     address[] calldata tokens_,
     TokenType[] calldata types_
@@ -100,7 +100,7 @@ contract RealTokenYamUpgradeableV2 is
     emit TokenWhitelistWithTypeToggled(tokens_, types_);
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
+  /// @inheritdoc	IRealTokenYamUpgradeableV1
   function createOffer(
     address offerToken,
     address buyerToken,
@@ -108,17 +108,14 @@ contract RealTokenYamUpgradeableV2 is
     uint256 price,
     uint256 amount
   ) public override whenNotPaused {
-    // If the offerToken is a RealToken, isTransferValid need to be checked
-    if (tokenTypes[offerToken] == TokenType.REALTOKEN) {
-      require(
-        _isTransferValid(offerToken, msg.sender, msg.sender, amount),
-        "Seller can not transfer tokens"
-      );
-    }
+    require(
+      tokenTypes[offerToken] != TokenType.REALTOKEN,
+      "Use permit methode for RealToken"
+    );
     _createOffer(offerToken, buyerToken, buyer, price, amount);
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
+  /// @inheritdoc	IRealTokenYamUpgradeableV1
   function createOfferWithPermit(
     address offerToken,
     address buyerToken,
@@ -155,16 +152,16 @@ contract RealTokenYamUpgradeableV2 is
     );
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
+  /// @inheritdoc	IRealTokenYamUpgradeableV1
   function buy(
     uint256 offerId,
     uint256 price,
     uint256 amount
-  ) external override whenNotPaused {
+  ) public override whenNotPaused {
     _buy(offerId, price, amount);
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
+  /// @inheritdoc	IRealTokenYamUpgradeableV1
   function buyWithPermit(
     uint256 offerId,
     uint256 price,
@@ -201,16 +198,16 @@ contract RealTokenYamUpgradeableV2 is
     _buy(offerId, price, amount);
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
+  /// @inheritdoc	IRealTokenYamUpgradeableV1
   function updateOffer(
     uint256 offerId,
     uint256 price,
     uint256 amount
-  ) external override whenNotPaused {
+  ) public override whenNotPaused {
     _updateOffer(offerId, price, amount);
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
+  /// @inheritdoc	IRealTokenYamUpgradeableV1
   function updateOfferWithPermit(
     uint256 offerId,
     uint256 price,
@@ -219,7 +216,7 @@ contract RealTokenYamUpgradeableV2 is
     uint8 v,
     bytes32 r,
     bytes32 s
-  ) external override whenNotPaused {
+  ) public override whenNotPaused {
     // Permit new amount
     uint256 amountToPermit = IBridgeToken(offerTokens[offerId]).allowance(
       msg.sender,
@@ -240,44 +237,39 @@ contract RealTokenYamUpgradeableV2 is
     _updateOffer(offerId, price, amount);
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
+  /// @inheritdoc	IRealTokenYamUpgradeableV1
   function deleteOffer(uint256 offerId) public override whenNotPaused {
     require(sellers[offerId] == msg.sender, "only the seller can delete offer");
-    _deleteOffer(offerId);
+    delete sellers[offerId];
+    delete buyers[offerId];
+    delete offerTokens[offerId];
+    delete buyerTokens[offerId];
+    delete prices[offerId];
+    delete amounts[offerId];
+    emit OfferDeleted(offerId);
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
-  function deleteOfferBatch(uint256[] calldata offerIds)
-    external
-    override
-    whenNotPaused
-  {
-    uint256 length = offerIds.length;
-    for (uint256 i = 0; i < length; ) {
-      deleteOffer(offerIds[i]);
-      ++i;
-    }
-  }
-
-  /// @inheritdoc	IRealTokenYamUpgradeable
-  function deleteOfferByAdmin(uint256[] calldata offerIds)
+  /// @inheritdoc	IRealTokenYamUpgradeableV1
+  function deleteOfferByAdmin(uint256 offerId)
     external
     override
     onlyRole(DEFAULT_ADMIN_ROLE)
   {
-    uint256 length = offerIds.length;
-    for (uint256 i = 0; i < length; ) {
-      _deleteOffer(offerIds[i]);
-      ++i;
-    }
+    delete sellers[offerId];
+    delete buyers[offerId];
+    delete offerTokens[offerId];
+    delete buyerTokens[offerId];
+    delete prices[offerId];
+    delete amounts[offerId];
+    emit OfferDeleted(offerId);
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
-  function getOfferCount() external view override returns (uint256) {
+  /// @inheritdoc	IRealTokenYamUpgradeableV1
+  function getOfferCount() public view override returns (uint256) {
     return offerCount;
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
+  /// @inheritdoc	IRealTokenYamUpgradeableV1
   function getTokenType(address token)
     external
     view
@@ -287,9 +279,9 @@ contract RealTokenYamUpgradeableV2 is
     return tokenTypes[token];
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
+  /// @inheritdoc	IRealTokenYamUpgradeableV1
   function tokenInfo(address tokenAddr)
-    external
+    public
     view
     override
     returns (
@@ -306,9 +298,9 @@ contract RealTokenYamUpgradeableV2 is
     );
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
+  /// @inheritdoc	IRealTokenYamUpgradeableV1
   function getInitialOffer(uint256 offerId)
-    external
+    public
     view
     override
     returns (
@@ -330,9 +322,9 @@ contract RealTokenYamUpgradeableV2 is
     );
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
+  /// @inheritdoc	IRealTokenYamUpgradeableV1
   function showOffer(uint256 offerId)
-    external
+    public
     view
     override
     returns (
@@ -372,9 +364,9 @@ contract RealTokenYamUpgradeableV2 is
     );
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
+  /// @inheritdoc	IRealTokenYamUpgradeableV1
   function pricePreview(uint256 offerId, uint256 amount)
-    external
+    public
     view
     override
     returns (uint256)
@@ -385,7 +377,7 @@ contract RealTokenYamUpgradeableV2 is
       (uint256(10)**offerTokenInterface.decimals());
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
+  /// @inheritdoc	IRealTokenYamUpgradeableV1
   function saveLostTokens(address token)
     external
     override
@@ -398,7 +390,7 @@ contract RealTokenYamUpgradeableV2 is
     );
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
+  /// @inheritdoc	IRealTokenYamUpgradeableV1
   function setFee(uint256 fee_) external override onlyRole(DEFAULT_ADMIN_ROLE) {
     emit FeeChanged(fee, fee_);
     fee = fee_;
@@ -445,44 +437,21 @@ contract RealTokenYamUpgradeableV2 is
     );
   }
 
-  /**
-   * @notice Creates a new offer or updates an existing offer (call this again with the changed price + offerId)
-   * @param _offerId The address of the token to be sold
-   * @param _price The address of the token to be bought
-   * @param _amount The price in base units of the token to be sold
-   **/
   function _updateOffer(
-    uint256 _offerId,
-    uint256 _price,
-    uint256 _amount
+    uint256 offerId,
+    uint256 price,
+    uint256 amount
   ) private {
-    require(
-      sellers[_offerId] == msg.sender,
-      "only the seller can change offer"
-    );
+    require(sellers[offerId] == msg.sender, "only the seller can change offer");
     emit OfferUpdated(
-      _offerId,
-      prices[_offerId],
-      _price,
-      amounts[_offerId],
-      _amount
+      offerId,
+      prices[offerId],
+      price,
+      amounts[offerId],
+      amount
     );
-    prices[_offerId] = _price;
-    amounts[_offerId] = _amount;
-  }
-
-  /**
-   * @notice Deletes an existing offer
-   * @param _offerId The Id of the offer to be deleted
-   **/
-  function _deleteOffer(uint256 _offerId) private {
-    delete sellers[_offerId];
-    delete buyers[_offerId];
-    delete offerTokens[_offerId];
-    delete buyerTokens[_offerId];
-    delete prices[_offerId];
-    delete amounts[_offerId];
-    emit OfferDeleted(_offerId);
+    prices[offerId] = price;
+    amounts[offerId] = amount;
   }
 
   /**
@@ -580,14 +549,14 @@ contract RealTokenYamUpgradeableV2 is
     return isTransferValid;
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
+  //TODO 1: test this with UI
   function createOfferBatch(
     address[] calldata _offerTokens,
     address[] calldata _buyerTokens,
     address[] calldata _buyers,
     uint256[] calldata _prices,
     uint256[] calldata _amounts
-  ) external override whenNotPaused {
+  ) external whenNotPaused {
     uint256 length = _offerTokens.length;
     require(
       _buyerTokens.length == length &&
@@ -596,7 +565,7 @@ contract RealTokenYamUpgradeableV2 is
         _amounts.length == length,
       "length mismatch"
     );
-    for (uint256 i = 0; i < length; ) {
+    for (uint256 i = 0; i < length; i++) {
       createOffer(
         _offerTokens[i],
         _buyerTokens[i],
@@ -604,41 +573,49 @@ contract RealTokenYamUpgradeableV2 is
         _prices[i],
         _amounts[i]
       );
-      ++i;
     }
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
+  //TODO 2: test this with UI
   function updateOfferBatch(
     uint256[] calldata _offerIds,
     uint256[] calldata _prices,
     uint256[] calldata _amounts
-  ) external override whenNotPaused {
+  ) external whenNotPaused {
     uint256 length = _offerIds.length;
     require(
       _prices.length == length && _amounts.length == length,
       "length mismatch"
     );
-    for (uint256 i = 0; i < length; ) {
+    for (uint256 i = 0; i < length; i++) {
       _updateOffer(_offerIds[i], _prices[i], _amounts[i]);
-      ++i;
     }
   }
 
-  /// @inheritdoc	IRealTokenYamUpgradeable
+  //TODO 3: test this with UI
+  function deleteOfferBatch(uint256[] calldata _offerIds)
+    external
+    whenNotPaused
+  {
+    uint256 length = _offerIds.length;
+    for (uint256 i = 0; i < length; i++) {
+      deleteOffer(_offerIds[i]);
+    }
+  }
+
+  //TODO 4: test this with UI
   function buyOfferBatch(
     uint256[] calldata _offerIds,
     uint256[] calldata _prices,
     uint256[] calldata _amounts
-  ) external override whenNotPaused {
+  ) external whenNotPaused {
     uint256 length = _offerIds.length;
     require(
       _prices.length == length && _amounts.length == length,
       "length mismatch"
     );
-    for (uint256 i = 0; i < length; ) {
-      _buy(_offerIds[i], _prices[i], _amounts[i]);
-      ++i;
+    for (uint256 i = 0; i < length; i++) {
+      buy(_offerIds[i], _prices[i], _amounts[i]);
     }
   }
 }

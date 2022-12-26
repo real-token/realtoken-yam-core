@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 import "./IBridgeToken.sol";
 import "./IComplianceRegistry.sol";
 
-interface IRealTokenYamUpgradeable {
+interface IRealTokenYamUpgradeableV2 {
   enum TokenType {
     NOTWHITELISTEDTOKEN,
     REALTOKEN,

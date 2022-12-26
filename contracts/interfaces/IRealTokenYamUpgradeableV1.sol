@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 import "./IBridgeToken.sol";
 import "./IComplianceRegistry.sol";
 
-interface IRealTokenYamUpgradeable {
+interface IRealTokenYamUpgradeableV1 {
   enum TokenType {
     NOTWHITELISTEDTOKEN,
     REALTOKEN,
@@ -126,7 +126,7 @@ interface IRealTokenYamUpgradeable {
   ) external;
 
   /**
-   * @notice Updates an existing offer
+   * @notice Updates an existing offer (call this again with the changed price + offerId)
    * @param offerId The Id of the offer
    * @param price The price in base units of the token to be sold
    * @param amount The amount of the offer token
@@ -138,7 +138,7 @@ interface IRealTokenYamUpgradeable {
   ) external;
 
   /**
-   * @notice Updates an existing offer
+   * @notice Updates an existing offer (call this again with the changed price + offerId)
    * @param offerId The Id of the offer
    * @param price The price in base units of the token to be sold
    * @param amount The amount of the offer token
@@ -164,16 +164,10 @@ interface IRealTokenYamUpgradeable {
   function deleteOffer(uint256 offerId) external;
 
   /**
-   * @notice Deletes an array of existing offers (for example in case tokens are frozen), only the admin can do this
-   * @param offerIds The Ids array of the offers to be deleted
-   **/
-  function deleteOfferBatch(uint256[] calldata offerIds) external;
-
-  /**
    * @notice Deletes an existing offer (for example in case tokens are frozen), only the admin can do this
-   * @param offerIds The Id of the offer to be deleted
+   * @param offerId The Id of the offer to be deleted
    **/
-  function deleteOfferByAdmin(uint256[] calldata offerIds) external;
+  function deleteOfferByAdmin(uint256 offerId) external;
 
   /**
    * @notice Accepts an existing offer
@@ -317,46 +311,4 @@ interface IRealTokenYamUpgradeable {
    * @param fee The new fee basic points
    **/
   function setFee(uint256 fee) external;
-
-  /**
-   * @notice Creates a new offer or updates an existing offer (call this again with the changed price + offerId)
-   * @param _offerTokens The array addresses of the tokens to be sold
-   * @param _buyerTokens The array addresses of the tokens to be bought
-   * @param _buyers The array addresses of the allowed buyers (zero address means anyone can buy)
-   * @param _prices The array prices in base units of the tokens to be sold
-   * @param _amounts The array amounts of the offer tokens
-   **/
-  function createOfferBatch(
-    address[] calldata _offerTokens,
-    address[] calldata _buyerTokens,
-    address[] calldata _buyers,
-    uint256[] calldata _prices,
-    uint256[] calldata _amounts
-  ) external;
-
-  /**
-   * @notice Updates an array of existing offers
-   * @param _offerIds The array Ids of the offers
-   * @param _prices The array prices in base units of the tokens to be sold
-   * @param _amounts The array amounts of the offer tokens
-   **/
-  function updateOfferBatch(
-    uint256[] calldata _offerIds,
-    uint256[] calldata _prices,
-    uint256[] calldata _amounts
-  ) external;
-
-  /**
-   * @notice Accepts an existing offer
-   * @notice The buyer must bring the price correctly to ensure no frontrunning / changed offer
-   * @notice If the offer is changed in meantime, it will not execute
-   * @param _offerIds The array Ids of the offers
-   * @param _prices The array prices in base units of the offer tokens
-   * @param _amounts The array amounts of offer tokens
-   **/
-  function buyOfferBatch(
-    uint256[] calldata _offerIds,
-    uint256[] calldata _prices,
-    uint256[] calldata _amounts
-  ) external;
 }
