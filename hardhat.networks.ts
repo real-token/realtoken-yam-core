@@ -18,6 +18,7 @@ if (process.env.GOERLI_RPC_URL && process.env.PRIVATE_KEY) {
   networks.goerli = {
     url: process.env.GOERLI_RPC_URL,
     chainId: 5,
+    gasPrice: 2500000000,
     accounts: [process.env.PRIVATE_KEY],
   };
 }
