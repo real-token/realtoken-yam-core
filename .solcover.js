@@ -43,6 +43,6 @@ module.exports = {
     "test-tokens/WXDAIRealT.sol",
     "test-tokens/WETHRealT.sol",
     "upgradeability/RealTokenYamUpgradeableV2.sol",
-    "SwapCatUpgradeable.sol",
+    "versions/RealTokenYamUpgradeableV1.sol",
   ],
 };

@@ -82,7 +82,17 @@ describe("3. RealTokenYamUpgradeable user function without permit", function () 
           PRICE_STABLE_2,
           AMOUNT_OFFER_STABLE_2
         )
-      ).to.revertedWith("Use permit methode for RealToken");
+      )
+        .to.emit(realTokenYamUpgradeable, "OfferCreated")
+        .withArgs(
+          bridgeToken.address,
+          usdcTokenTest.address,
+          admin.address,
+          ZERO_ADDRESS,
+          2,
+          PRICE_STABLE_2,
+          AMOUNT_OFFER_STABLE_2
+        );
     });
 
     it("Create Offer: should revert when the tokens are not whitelisted", async function () {
@@ -174,7 +184,9 @@ describe("3. RealTokenYamUpgradeable user function without permit", function () 
       );
 
       // Admin deletes the offer, offerId = 0
-      await expect(realTokenYamUpgradeable.connect(admin).deleteOfferByAdmin(0))
+      await expect(
+        realTokenYamUpgradeable.connect(admin).deleteOfferByAdmin([0])
+      )
         .to.emit(realTokenYamUpgradeable, "OfferDeleted")
         .withArgs(0);
     });
@@ -187,7 +199,7 @@ describe("3. RealTokenYamUpgradeable user function without permit", function () 
       // Test function: deleteOfferByAdmin
       // Revert when user 1 deletes the offer using deleteOfferByAdmin, offerId = 0
       await expect(
-        realTokenYamUpgradeable.connect(user1).deleteOfferByAdmin(0)
+        realTokenYamUpgradeable.connect(user1).deleteOfferByAdmin([0])
       ).to.revertedWith(
         `AccessControl: account ${user1.address.toLowerCase()} is missing role ${await realTokenYamUpgradeable.DEFAULT_ADMIN_ROLE()}`
       );
