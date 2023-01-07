@@ -1,12 +1,12 @@
 import { ethers, upgrades } from "hardhat";
 
 async function upgradeYamWithPrivateKey() {
-  const RealTokenYamUpgradeable = await ethers.getContractFactory(
-    "RealTokenYamUpgradeable"
+  const RealTokenYamUpgradeableV3 = await ethers.getContractFactory(
+    "RealTokenYamUpgradeableV3"
   );
-  const RealTokenYamUpgradeableV2Upgraded = await upgrades.upgradeProxy(
+  const RealTokenYamUpgradeableV3Upgraded = await upgrades.upgradeProxy(
     process.env.REALTOKEN_YAM_PROXY as string, // Proxy address
-    RealTokenYamUpgradeable,
+    RealTokenYamUpgradeableV3,
     { timeout: 0 }
   );
 

@@ -1,8 +1,8 @@
 import hre, { ethers, upgrades } from "hardhat";
 
 async function upgradeYamWithFrame() {
-  const RealTokenYamUpgradeableV2 = await ethers.getContractFactory(
-    "RealTokenYamUpgradeableV2"
+  const RealTokenYamUpgradeableV3 = await ethers.getContractFactory(
+    "RealTokenYamUpgradeableV3"
   );
 
   const provider = new ethers.providers.JsonRpcProvider(
@@ -16,11 +16,11 @@ async function upgradeYamWithFrame() {
   const deployer = await signer.getAddress();
   console.log("Using hardware wallet: ", deployer);
 
-  const realTokenYamUpgradeableV2 = RealTokenYamUpgradeableV2.connect(signer);
+  const realTokenYamUpgradeableV3 = RealTokenYamUpgradeableV3.connect(signer);
 
-  const RealTokenYamUpgradeableV2Upgraded = await upgrades.upgradeProxy(
+  const RealTokenYamUpgradeableV3Upgraded = await upgrades.upgradeProxy(
     process.env.REALTOKEN_YAM_PROXY as string, // Proxy address
-    realTokenYamUpgradeableV2,
+    realTokenYamUpgradeableV3,
     { timeout: 0 }
   );
 
