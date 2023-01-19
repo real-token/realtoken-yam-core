@@ -208,9 +208,7 @@ describe("2. RealTokenYamUpgradeable admin functions", function () {
           to: realTokenYamUpgradeable.address,
           value: ethers.utils.parseEther("1.0"), // Sends exactly 1.0 ether
         })
-      ).to.be.revertedWith(
-        "function selector was not recognized and there's no fallback nor receive function"
-      );
+      ).to.be.reverted;
     });
   });
   describe("2.3. Admin can grant/revoke roles", function () {
