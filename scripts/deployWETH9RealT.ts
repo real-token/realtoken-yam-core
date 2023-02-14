@@ -19,7 +19,7 @@ async function main() {
 
   try {
     await run("verify:verify", {
-      address: "0xbd3b80486626cF7FB8EAf889DB53f3914bcaE56B",
+      address: weth9RealT.address,
       constructorArguments: ["WETH9 RealT", "WETH9RealT"],
     });
   } catch (err) {
