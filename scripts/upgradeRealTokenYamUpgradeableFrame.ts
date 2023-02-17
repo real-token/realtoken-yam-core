@@ -18,7 +18,7 @@ async function upgradeYamWithFrame() {
 
   const realTokenYamUpgradeableV3 = RealTokenYamUpgradeableV3.connect(signer);
 
-  const RealTokenYamUpgradeableV3Upgraded = await upgrades.upgradeProxy(
+  await upgrades.upgradeProxy(
     process.env.REALTOKEN_YAM_PROXY as string, // Proxy address
     realTokenYamUpgradeableV3,
     { timeout: 0 }

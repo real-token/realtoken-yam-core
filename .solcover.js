@@ -2,9 +2,13 @@
 
 module.exports = {
   skipFiles: [
+    "upgradeability/RealTokenYamUpgradeableV2.sol",
+    "versions/RealTokenYamUpgradeableV1.sol",
+    "test-tokens/USDCRealT.sol",
+    "test-tokens/WXDAIRealT.sol",
+    "test-tokens/WETHRealT.sol",
     "test/RealTokenTest.sol",
     "test/USDCTokenTest.sol",
-    "test/SwapCatUpgradeableV2.sol",
     "test/bridge-token/access/Operator.sol",
     "test/bridge-token/access/Roles.sol",
     "test/bridge-token/interfaces/IAdministrable.sol",
@@ -39,10 +43,5 @@ module.exports = {
     "test/bridge-token/token/CoinBridgeToken.sol",
     "test/bridge-token/token/utils/ECRecover.sol",
     "test/bridge-token/token/utils/EIP712.sol",
-    "test-tokens/USDCRealT.sol",
-    "test-tokens/WXDAIRealT.sol",
-    "test-tokens/WETHRealT.sol",
-    "upgradeability/RealTokenYamUpgradeableV2.sol",
-    "versions/RealTokenYamUpgradeableV1.sol",
   ],
 };

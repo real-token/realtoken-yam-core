@@ -111,47 +111,18 @@
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-### Pause/unpause
+### Usage
 
-Admin can use pause/unpause functions to pause/unpause user functionnalities on the contract (create, update, delete, buy offer).
+The contract allows sell, buy and exchange tokens between users.
 
-The admin functionnalities are still callable.
+The sellers can create, update and delete their offers. The buyers can buy the offer.
+
+The contract also supports tokens with permit functionnality.
 
 ### Whitelist token
 
-Use admin wallet to call toggleWhitelistWithType function:
+Admin can whitelist tokens which is allows to be sold via this contract. This helps to prevent listing undesired tokens.
 
-toggleWhitelistWithType(address[] tokens, uint8[] types)
-
-By default, type = 0 which means the token is not whitelisted
-
-type 1 = RealToken
-
-type 2 = Other token that have permit function
-
-type 3 = Other token that does not have permit function
-
-For example, to whitelist these 4 tokens (testnet):
-
-RealToken S 14078 Carlisle St Detroit MI: 0xF1AAaCdB0E5acd8f725b4f1eB33e4d976bAE87A7
-
-RealToken S 15777 Ardmore St Detroit MI: 0x7401F1A495c4d13aF56fd1d880F1aA646FD1017C
-
-USDCRealT (permit): 0x3e7493506Bc350Ed7f5344196B1842185753bde1
-
-USDCTest (non permit): 0x31f3bEB82969825F8d2699b9f1191A0618526773
-
-We need to call toggleWhitelistWithType with 2 below arrays as input:
-
-```
-["0xF1AAaCdB0E5acd8f725b4f1eB33e4d976bAE87A7","0x7401F1A495c4d13aF56fd1d880F1aA646FD1017C","0x3e7493506Bc350Ed7f5344196B1842185753bde1","0x31f3bEB82969825F8d2699b9f1191A0618526773"]
-
-[1,1,2,3]
-```
-
-Using Etherscan/Gnosisscan:
-
-<img src="images/yam_whitelist_array.png" alt="Whitelist">
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- AUDIT -->
@@ -178,7 +149,8 @@ slither .
 - Add whitelisting token functionnalities ✅
 - Testing ✅
 - Slither analysis ✅
-- Support for Hardware Wallet ❌
+- Support for Hardware Wallet ✅
+- Adding more features in next versions ❌
 
 See the [open issues](https://github.com/real-token/realtoken-yam-core/issues) for a full list of proposed features (and known issues).
 
@@ -192,63 +164,17 @@ See the [open issues](https://github.com/real-token/realtoken-yam-core/issues) f
 npx hardhat coverage
 ```
 
-<img src="images/coverage.png" alt="Coverage">
-
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- GAS FEES -->
 
-## Gas fees
+## Test
 
 ```
 npx hardhat test
 ```
 
-<img src="images/gas.png" alt="Coverage">
-
 <p align="right">(<a href="#top">back to top</a>)</p>
-
-<!-- USAGE EXAMPLES -->
-
-## Usage
-
-Deployed addresses on Goerli testnet (these are old testnet addresses, to find updated official testnet tokens, use shared drive docs):
-
-AdminProxy: 0xc7f8c34680913ee5b5839da58b2013b731a8f437
-
-AdminToken: 0xa221a6194bdaf3d6c329ab58a8d1daaf1aec4008
-
-ComplianceRegistry (trustedIntermediary): 0xf8aeaa8938a858c036ed77d2ff8bab0c12e01a56
-
-TokenOwner1: 0x518be392928df2a9f063f6d225626e210fd84992
-
-TokenOwner2: 0xf894671ecb801a6bbbe4c6eca37074c7329926c2
-
-TokenOwner3: 0x063d5bc32e62e79d982c518a8de6f65653bf9cff
-
-TokenOwner4: 0xa03d9eae4a545141eb1e6e8248eb17fdc84dcdb7
-
-Token Implemetation (logic): 0x8784219F6F6CbEDe8eee1Cf4871fbf9E424C22df
-
-RegS Token 1: 0x8784219F6F6CbEDe8eee1Cf4871fbf9E424C22df
-
-RegD Token 2: 0xDF3f63a3a1E86296d438156BD9029e6973dD96A7
-
-SwapCatUpgradeable Proxy: 0x9EC2D0A68e9F49B37e77C63Bc38E58B11D345b3b
-
-SwapCatUpgradeable Implementation: 0xDFB267850891Ea0482A9aA382003461Eb704a6a6
-
-SwapCat Admin: 0x71C7D067f4046f146419f4FC72c18601C5eB7545
-
-SwapCat Moderator: 0x822d65085ce1D3097CdE8035C4d5A0a196955523
-
-USDCToken Test: 0x31f3bEB82969825F8d2699b9f1191A0618526773
-
-SwapCatUpgradeable Proxy (with Permit): 0xeaBE3576be937B6d2B40Bd58Da0a7e7f4FAa2632
-
-SwapCatUpgradeable Implementation (with Permit): 0x65f0A4b5e1Ca1D88A83510127ba710fC1878A755
-
-USDCToken Test (with Permit): 0x2d8aC0601b2D4c9C8b4Bd87dEE72a08fE2bC0F7f
 
 <!-- CONTRIBUTING -->
 
@@ -286,6 +212,8 @@ Project Link: [https://github.com/real-token/realtoken-yam-core](https://github.
 <!-- BUILD WITH HARDHAT -->
 
 ## Built With Hardhat
+
+Acknowledgement: The YAM contract is inspired by the wallet2wallet DEX SwapCat.
 
 - [Eslint](https://eslint.org/)
 - [Chai](https://www.chaijs.com/guide/)
