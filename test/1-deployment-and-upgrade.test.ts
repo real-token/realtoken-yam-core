@@ -47,7 +47,7 @@ describe("1. RealTokenYamUpgradeable deployment and upgrade", function () {
       const { realTokenYamUpgradeable } = await loadFixture(makeSuite);
 
       const RealTokenYamUpgradeableV2 = await ethers.getContractFactory(
-        "RealTokenYamUpgradeableV2"
+        "RealTokenYamUpgradeableV3"
       );
 
       const realTokenYamUpgradeableV2 = (await upgrades.upgradeProxy(

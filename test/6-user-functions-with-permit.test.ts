@@ -26,13 +26,7 @@ describe("6. RealTokenYamUpgradeable user function using permit", function () {
         unlockTime,
       } = await loadFixture(makeSuiteWhitelistAndCreateOffer);
 
-      const amountInWeiToPermit = BigNumber.from(
-        await bridgeToken.allowance(
-          user1.address,
-          realTokenYamUpgradeable.address
-        )
-      ).add(AMOUNT_OFFER_REALTOKEN);
-
+      const amountInWeiToPermit = AMOUNT_OFFER_REALTOKEN;
       const transactionDeadline = unlockTime + 3600;
 
       const { v, r, s }: any = await getPermitSignatureRealToken(
@@ -54,6 +48,7 @@ describe("6. RealTokenYamUpgradeable user function using permit", function () {
             ZERO_ADDRESS,
             PRICE_REALTOKEN_1,
             AMOUNT_OFFER_REALTOKEN,
+            AMOUNT_OFFER_REALTOKEN,
             transactionDeadline,
             v,
             r,
@@ -71,6 +66,7 @@ describe("6. RealTokenYamUpgradeable user function using permit", function () {
             usdcRealT.address,
             ZERO_ADDRESS,
             PRICE_REALTOKEN_1,
+            AMOUNT_OFFER_REALTOKEN,
             AMOUNT_OFFER_REALTOKEN,
             transactionDeadline,
             v,
@@ -102,12 +98,8 @@ describe("6. RealTokenYamUpgradeable user function using permit", function () {
       } = await loadFixture(makeSuiteWhitelistAndCreateOffer);
 
       await time.increaseTo(unlockTime);
-      const amountInWeiToPermit = BigNumber.from(
-        await bridgeToken.allowance(
-          user1.address,
-          realTokenYamUpgradeable.address
-        )
-      ).add(AMOUNT_OFFER_REALTOKEN);
+
+      const amountInWeiToPermit = AMOUNT_OFFER_REALTOKEN;
 
       const transactionDeadline = unlockTime + 3600;
 
@@ -129,6 +121,7 @@ describe("6. RealTokenYamUpgradeable user function using permit", function () {
             usdcRealT.address,
             ZERO_ADDRESS,
             PRICE_REALTOKEN_1,
+            AMOUNT_OFFER_REALTOKEN,
             AMOUNT_OFFER_REALTOKEN,
             transactionDeadline,
             v,
@@ -171,6 +164,7 @@ describe("6. RealTokenYamUpgradeable user function using permit", function () {
             offerCount,
             PRICE_REALTOKEN_2,
             AMOUNT_OFFER_REALTOKEN_2,
+            AMOUNT_OFFER_REALTOKEN_2,
             transactionDeadline,
             updateSig.v,
             updateSig.r,
@@ -200,12 +194,8 @@ describe("6. RealTokenYamUpgradeable user function using permit", function () {
       } = await loadFixture(makeSuiteWhitelistAndCreateOffer);
 
       await time.increaseTo(unlockTime);
-      const amountInWeiToPermit = BigNumber.from(
-        await bridgeToken.allowance(
-          user1.address,
-          realTokenYamUpgradeable.address
-        )
-      ).add(AMOUNT_OFFER_REALTOKEN);
+
+      const amountInWeiToPermit = AMOUNT_OFFER_REALTOKEN;
 
       const transactionDeadline = unlockTime + 3600;
 
@@ -227,6 +217,7 @@ describe("6. RealTokenYamUpgradeable user function using permit", function () {
             usdcRealT.address,
             user2.address,
             PRICE_REALTOKEN_1,
+            AMOUNT_OFFER_REALTOKEN,
             AMOUNT_OFFER_REALTOKEN,
             transactionDeadline,
             v,

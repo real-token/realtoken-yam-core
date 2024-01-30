@@ -48,7 +48,7 @@ export async function makeSuite() {
     "ComplianceRegistry"
   );
   const RealTokenYamUpgradeableFactory = await ethers.getContractFactory(
-    "RealTokenYamUpgradeable"
+    "RealTokenYamUpgradeableV3" // use the latest version of RealTokenYamUpgradeable
   );
 
   const usdcTokenTest = await USDCTokenTest.deploy();
