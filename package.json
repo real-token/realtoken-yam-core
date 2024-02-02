@@ -12,6 +12,7 @@
     "test": "npx hardhat test",
     "coverage": "npx hardhat coverage",
     "size": "npm run compile && npx hardhat size-contracts",
+    "upgradeFrame:CleanSatMining::gnosis": "npx hardhat run scripts/upgradeCleanSatMiningFrame.ts --network gnosis",
     "deployFrame:CleanSatMining::hardhat": "npx hardhat run scripts/deployCleanSatMiningFrame.ts --network hardhat",
     "deployFrame:CleanSatMining::goerli": "npx hardhat run scripts/deployCleanSatMiningFrame.ts --network goerli",
     "deployFrame:CleanSatMining::gnosis": "npx hardhat run scripts/deployCleanSatMiningFrame.ts --network gnosis",
