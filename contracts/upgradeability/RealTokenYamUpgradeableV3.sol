@@ -27,6 +27,7 @@ contract RealTokenYamUpgradeableV3 is
   mapping(address => TokenType) private tokenTypes;
   uint256 private offerCount;
   uint256 public fee; // fee in basis points
+	mapping(uint256 => uint256) private offerBlockNumbers;
 
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() {
@@ -425,8 +426,9 @@ contract RealTokenYamUpgradeableV3 is
     buyerTokens[_offerId] = _buyerToken;
     prices[_offerId] = _price;
     amounts[_offerId] = _amount;
+		offerBlockNumbers[_offerId] = block.number;
 
-    emit OfferCreated(
+		emit OfferCreated(
       _offerToken,
       _buyerToken,
       msg.sender,
@@ -500,6 +502,12 @@ contract RealTokenYamUpgradeableV3 is
 
     IERC20 offerTokenInterface = IERC20(offerToken);
     IERC20 buyerTokenInterface = IERC20(buyerToken);
+
+		// Check if the offer is validated in the last block
+		require(
+			block.number > offerBlockNumbers[_offerId],
+			"can not buy in the same block as offer creation"
+		);
 
     // given price is being checked with recorded data from mappings
     require(prices[_offerId] == _price, "offer price wrong");
