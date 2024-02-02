@@ -28,7 +28,7 @@ if (process.env.GNOSIS_RPC_URL && process.env.PRIVATE_KEY) {
   networks.gnosis = {
     url: process.env.GNOSIS_RPC_URL,
     chainId: 100,
-    gasPrice: 2500000000,
+    gasPrice: "auto",
     accounts: [process.env.PRIVATE_KEY],
   };
 }
