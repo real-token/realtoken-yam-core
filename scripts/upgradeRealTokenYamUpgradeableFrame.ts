@@ -17,14 +17,21 @@ async function upgradeYamWithFrame() {
   console.log("Using hardware wallet: ", deployer);
 
   const realTokenYamUpgradeableV3 = RealTokenYamUpgradeableV3.connect(signer);
-
-  await upgrades.upgradeProxy(
-    process.env.REALTOKEN_YAM_PROXY as string, // Proxy address
-    realTokenYamUpgradeableV3,
-    { timeout: 0 }
+  console.log(
+    "conecting the contract...",
+    process.env.REALTOKEN_YAM_PROXY as string,
+    hre.network.config.chainId ?? null
   );
-
-  console.log("The contract is upgraded");
+  try {
+    await upgrades.upgradeProxy(
+      process.env.REALTOKEN_YAM_PROXY as string, // Proxy address
+      realTokenYamUpgradeableV3,
+      { timeout: 0 }
+    );
+    console.log("The contract is upgraded");
+  } catch (error) {
+    console.log("Error upgrading the contract: ", error);
+  }
 }
 
 // We recommend this pattern to be able to use async/await everywhere
